@@ -16,9 +16,10 @@ import (
 const (
 	plotDirName = "/plots"
 	spPlot      = "plot"
+	spFilter    = "filter"
 )
 
-var subProgs = [...]string{spPlot}
+var subProgs = [...]string{spPlot, spFilter}
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -34,11 +35,13 @@ func main() {
 
 	ctx := context.TODO()
 
-	var out data.Results
+	var out data.Results = d
 	for _, sp := range args.subProg {
 		switch sp {
 		case spPlot:
-			out = plot.TimeSeries(ctx, d, args.plotDir)
+			out = plot.TimeSeries(ctx, out, args.plotDir)
+		case spFilter:
+			out = data.Transform(ctx, out, data.MinVersions(50), data.MinMeanRuntime(0.01), data.MinMedianRuntime(0.01))
 		default:
 			fmt.Printf("ERROR - Unknown Sub-Program '%v'\n", sp)
 		}
@@ -64,7 +67,7 @@ func saveOut(heading []string, d data.Results, outPath string) {
 					fmt.Printf("ERROR - Could not retrieve test with name '%s'", n)
 					continue
 				}
-				for _, r := range rs {
+				for _, r := range rs.ExecutionResults {
 					w.Write(r.AsStringArray())
 				}
 				w.Flush()

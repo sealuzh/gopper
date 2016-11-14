@@ -5,62 +5,23 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"sync"
 )
 
 const minCapacity = 50
 
-func newResult(record []string) *Result {
-	if len(record) < 6 {
-		return nil
-	}
-	rawVal, err := strconv.ParseFloat(record[5], 32)
-	if err != nil {
-		fmt.Printf("Could not parse RawVal (%v) of record (%v:%v)", record[5], record[2], record[4])
-		return nil
-	}
-	return &Result{
-		record[0],
-		record[1],
-		record[2],
-		record[3],
-		record[4],
-		float32(rawVal),
-	}
-}
-
-type Result struct {
-	Project       string
-	Version       string
-	SHA           string
-	Configuration string
-	Test          string
-	RawVal        float32
-}
-
-func (r Result) AsStringArray() []string {
-	return []string{
-		r.Project,
-		r.Version,
-		r.SHA,
-		r.Configuration,
-		r.Test,
-		strconv.FormatFloat(float64(r.RawVal), 'f', -1, 32),
-	}
-}
-
 // Results
 type Results interface {
-	Add(r *Result) error
-	Get(test string) (testResults []*Result, ok bool)
+	Add(r *ExecutionResult) error
+	Remove(test string) error
+	Get(test string) (testResults *TestResult, ok bool)
 	TestNames() []string
 	Length() int
 }
 
 func NewResults() Results {
 	return &resultsMap{
-		m:     make(map[string][]*Result),
+		m:     make(map[string]*TestResult),
 		names: make([]string, 0, minCapacity),
 	}
 }
@@ -108,11 +69,11 @@ func ResultsFromFile(path string) (heading []string, data Results, err error) {
 
 type resultsMap struct {
 	lock  sync.RWMutex
-	m     map[string][]*Result
+	m     map[string]*TestResult
 	names []string
 }
 
-func (rm *resultsMap) Add(r *Result) error {
+func (rm *resultsMap) Add(r *ExecutionResult) error {
 	if r == nil {
 		return fmt.Errorf("Result to add is nil")
 	}
@@ -121,17 +82,54 @@ func (rm *resultsMap) Add(r *Result) error {
 	defer rm.lock.Unlock()
 	res, ok := rm.m[r.Test]
 	if ok {
-		rm.m[r.Test] = append(res, r)
-		rm.names = append(rm.names, r.Test)
+		res.ExecutionResults = append(res.ExecutionResults, r)
 	} else {
-		rm.m[r.Test] = append(make([]*Result, 0, minCapacity), r)
+		rm.m[r.Test] = &TestResult{
+			ExecutionResults: append(make([]*ExecutionResult, 0, minCapacity), r),
+			Project:          r.Project,
+			Test:             r.Test,
+		}
 		rm.names = append(rm.names, r.Test)
 	}
 
 	return nil
 }
 
-func (rm *resultsMap) Get(test string) ([]*Result, bool) {
+func (rm *resultsMap) Remove(test string) error {
+	rm.lock.Lock()
+	defer rm.lock.Unlock()
+
+	fmt.Printf("Size of results: %d; names: %d\n", len(rm.m), len(rm.names))
+	_, ok := rm.m[test]
+	if !ok {
+		return fmt.Errorf("No element with name '%s' to remove", test)
+	}
+	delete(rm.m, test)
+
+	index := -1
+	for _, n := range rm.names {
+		index += 1
+		if n == test {
+			fmt.Printf("Remove element name: %s\n", n)
+			break
+		}
+	}
+
+	if index != -1 {
+		if index < len(rm.names) {
+			rm.names = append(rm.names[:index], rm.names[index+1:]...)
+		} else {
+			rm.names = rm.names[:index]
+		}
+	} else {
+		fmt.Printf("Could not find name: %s\n", test)
+	}
+	fmt.Printf("Size of results: %d; names: %d\n", len(rm.m), len(rm.names))
+
+	return nil
+}
+
+func (rm *resultsMap) Get(test string) (*TestResult, bool) {
 	rm.lock.RLock()
 	e, ok := rm.m[test]
 	rm.lock.RUnlock()

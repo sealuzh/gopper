@@ -29,7 +29,6 @@ var multipleTestNames = 0
 
 func TimeSeries(ctx context.Context, in data.Results, plotDir string) data.Results {
 	fmt.Printf("# Plot time series for %d tests\n", in.Length())
-
 	handleDirectory(plotDir)
 
 	start := time.Now()
@@ -40,7 +39,7 @@ func TimeSeries(ctx context.Context, in data.Results, plotDir string) data.Resul
 			panic(fmt.Sprintf("ERROR - Could not retrieve test '%s' from results", name))
 		}
 
-		printPlot(name, td, plotDir)
+		printPlot(td, plotDir)
 	}
 
 	fmt.Printf("# All tests plotted in %v\n", time.Since(start).String())
@@ -72,11 +71,12 @@ func handleDirectory(plotDir string) {
 	}
 }
 
-func printPlot(title string, d []*data.Result, plotDir string) {
+func printPlot(d *data.TestResult, plotDir string) {
 	p, err := pl.New()
 	if err != nil {
 		panic("ERROR - Could not create new plot")
 	}
+	title := d.Test
 
 	fmt.Printf("  # Plot for test '%s'\n", title)
 
@@ -118,7 +118,8 @@ func printPlot(title string, d []*data.Result, plotDir string) {
 	}
 }
 
-func plotData(d []*data.Result) (plotter.XYs, VersionTicker) {
+func plotData(testResult *data.TestResult) (plotter.XYs, VersionTicker) {
+	d := testResult.ExecutionResults
 	l := len(d)
 	data := make(plotter.XYs, l, l)
 	ticks := make([]pl.Tick, l, l)
