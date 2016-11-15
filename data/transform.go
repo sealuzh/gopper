@@ -24,11 +24,13 @@ func Transform(ctx context.Context, in Results, transformers ...TransFunc) Resul
 		ch <- tests
 		// fmt.Printf("%d filtered results\n", len(tests.ExecutionResults))
 		select {
-		case results := <-c:
+		case results, ok := <-c:
 			// fmt.Printf("%d filtered results\n", len(results.ExecutionResults))
-			if results != nil {
-				for _, res := range results.ExecutionResults {
-					ret.Add(res)
+			if ok {
+				if results != nil {
+					for _, res := range results.ExecutionResults {
+						ret.Add(res)
+					}
 				}
 			}
 		case <-ctx.Done():
@@ -42,7 +44,11 @@ func MinVersions(v int) TransFunc {
 	return func(ctx context.Context, in <-chan *TestResult) <-chan *TestResult {
 		out := make(chan *TestResult)
 		go func() {
-			tests := <-in
+			defer close(out)
+			tests, ok := <-in
+			if !ok {
+				return
+			}
 			if tests == nil {
 				out <- nil
 				// fmt.Printf("MinVersion: in is nill\n")
@@ -64,7 +70,11 @@ func MinMeanRuntime(r float32) TransFunc {
 	return func(ctx context.Context, in <-chan *TestResult) <-chan *TestResult {
 		out := make(chan *TestResult)
 		go func() {
-			tests := <-in
+			defer close(out)
+			tests, ok := <-in
+			if !ok {
+				return
+			}
 			if tests == nil {
 				out <- nil
 				// fmt.Printf("MinMeanRuntime: in is nill\n")
@@ -100,7 +110,12 @@ func MinMedianRuntime(r float32) TransFunc {
 	return func(ctx context.Context, in <-chan *TestResult) <-chan *TestResult {
 		out := make(chan *TestResult)
 		go func() {
-			tests := <-in
+			defer close(out)
+			tests, ok := <-in
+			if !ok {
+				return
+			}
+
 			if tests == nil {
 				// fmt.Printf("MinMedianRuntime: in is nill\n")
 				out <- nil

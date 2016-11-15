@@ -1,6 +1,7 @@
 package data
 
 import (
+	"bytes"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -9,6 +10,8 @@ import (
 )
 
 const minCapacity = 50
+const sep = ';'
+const comment = '#'
 
 // Results
 type Results interface {
@@ -17,34 +20,41 @@ type Results interface {
 	Get(test string) (testResults *TestResult, ok bool)
 	TestNames() []string
 	Length() int
+	Heading() []string
+	HeadingString() string
 }
 
 func NewResults() Results {
+	return NewResultsWithHeading([]string{})
+}
+
+func NewResultsWithHeading(heading []string) Results {
 	return &resultsMap{
-		m:     make(map[string]*TestResult),
-		names: make([]string, 0, minCapacity),
+		m:       make(map[string]*TestResult),
+		names:   make([]string, 0, minCapacity),
+		heading: heading,
 	}
 }
 
-func ResultsFromFile(path string) (heading []string, data Results, err error) {
+func ResultsFromFile(path string) (data Results, err error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer f.Close()
 
 	// assume csv file
 	r := csv.NewReader(f)
-	r.Comma = rune(';')
-	r.Comment = rune('#')
+	r.Comma = rune(sep)
+	r.Comment = rune(comment)
 	r.LazyQuotes = true
 
-	res := NewResults()
 	// ignore first line
-	heading, err = r.Read()
+	heading, err := r.Read()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
+	res := NewResultsWithHeading(heading)
 	for {
 		rec, err := r.Read()
 		if err != nil {
@@ -62,15 +72,32 @@ func ResultsFromFile(path string) (heading []string, data Results, err error) {
 	}
 
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return heading, res, nil
+	return res, nil
 }
 
 type resultsMap struct {
-	lock  sync.RWMutex
-	m     map[string]*TestResult
-	names []string
+	lock    sync.RWMutex
+	m       map[string]*TestResult
+	names   []string
+	heading []string
+}
+
+func (rm *resultsMap) Heading() []string {
+	return rm.heading
+}
+
+func (rm *resultsMap) HeadingString() string {
+	ret := bytes.Buffer{}
+	h := rm.Heading()
+	for i, e := range h {
+		ret.WriteString(e)
+		if i < (len(h) - 1) {
+			ret.WriteRune(sep)
+		}
+	}
+	return ret.String()
 }
 
 func (rm *resultsMap) Add(r *ExecutionResult) error {
