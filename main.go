@@ -86,12 +86,13 @@ func siso(ctx context.Context, sp string, ins []data.Results, in data.Input) []d
 	l := len(ins)
 	c := make(chan data.Results)
 	done := make(chan struct{})
-	for _, v := range ins {
+	for i, v := range ins {
+		i := i
 		v := v
 		go func() {
 			switch sp {
 			case spPlot:
-				c <- plot.TimeSeries(ctx, v, path(in.Plot))
+				c <- plot.TimeSeries(ctx, v, fmt.Sprintf("%s%d", path(in.Plot), i))
 			case spFilter:
 				c <- data.Transform(ctx, v, transFuncsFromIn(in)...)
 			default:
