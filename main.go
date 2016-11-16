@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"bitbucket.org/sealuzh/gopper/data"
+	"bitbucket.org/sealuzh/gopper/data/input"
 	"bitbucket.org/sealuzh/gopper/plot"
 )
 
@@ -89,7 +90,7 @@ func path(p string) string {
 	return p
 }
 
-func siso(ctx context.Context, sp string, ins []data.Results, in data.Input) []data.Results {
+func siso(ctx context.Context, sp string, ins []data.Results, in input.Config) []data.Results {
 	l := len(ins)
 	c := make(chan data.Results)
 	done := make(chan struct{})
@@ -134,7 +135,7 @@ func siso(ctx context.Context, sp string, ins []data.Results, in data.Input) []d
 	return res
 }
 
-func transFuncsFromIn(in data.Input) []data.TransFunc {
+func transFuncsFromIn(in input.Config) []data.TransFunc {
 	fs := make([]data.TransFunc, 0, len(in.Transform))
 	for _, f := range in.Transform {
 		switch f.TransFunc {
@@ -149,7 +150,7 @@ func transFuncsFromIn(in data.Input) []data.TransFunc {
 	return fs
 }
 
-func singleFloat32Param(f data.InputTransform) float32 {
+func singleFloat32Param(f input.Transform) float32 {
 	pc := len(f.TransParams)
 	if pc != 1 {
 		panic(fmt.Sprintf("%s must have 1 parameter. Config provided %d", f.TransFunc, pc))
@@ -164,7 +165,7 @@ func singleFloat32Param(f data.InputTransform) float32 {
 	}
 }
 
-func singleIntParam(f data.InputTransform) int {
+func singleIntParam(f input.Transform) int {
 	pc := len(f.TransParams)
 	if pc != 1 {
 		panic(fmt.Sprintf("%s must have 1 parameter. Config provided %d", f.TransFunc, pc))
@@ -219,7 +220,7 @@ func saveOut(d []data.Results, outPaths []string) {
 	}
 }
 
-func parseArguments() (data.SubPrograms, data.Input) {
+func parseArguments() (input.SubPrograms, input.Config) {
 	i := flag.String("c", "", "config file")
 	flag.Parse()
 
@@ -233,7 +234,7 @@ func parseArguments() (data.SubPrograms, data.Input) {
 		panic(fmt.Sprintf("ERROR - configuration file not a file: %v", err))
 	}
 
-	var d data.Input
+	var d input.Config
 	jd := json.NewDecoder(f)
 	err = jd.Decode(&d)
 	if err != nil {
@@ -241,7 +242,7 @@ func parseArguments() (data.SubPrograms, data.Input) {
 	}
 
 	args := flag.Args()
-	sp := data.SubPrograms{
+	sp := input.SubPrograms{
 		Count: len(args),
 		List:  args,
 	}
@@ -259,7 +260,7 @@ func parseArguments() (data.SubPrograms, data.Input) {
 	return sp, d
 }
 
-func validateArguments(sps data.SubPrograms, in data.Input) {
+func validateArguments(sps input.SubPrograms, in input.Config) {
 	var invalid bool
 	const (
 		argMissing = "Argument missing: %s\n"
@@ -297,7 +298,7 @@ func validateArguments(sps data.SubPrograms, in data.Input) {
 	}
 }
 
-func validateInOut(sps data.SubPrograms, in data.Input) bool {
+func validateInOut(sps input.SubPrograms, in input.Config) bool {
 	valid := true
 	lIn := len(in.In)
 	lOut := len(in.Out)
@@ -323,7 +324,7 @@ func validateInOut(sps data.SubPrograms, in data.Input) bool {
 	return valid
 }
 
-func validateTransformators(sps data.SubPrograms, in data.Input) bool {
+func validateTransformators(sps input.SubPrograms, in input.Config) bool {
 	valid := true
 
 	lSpTrans := len(sps.Transform)
@@ -355,7 +356,7 @@ func validateTransformators(sps data.SubPrograms, in data.Input) bool {
 	return valid
 }
 
-func validatePlot(sps data.SubPrograms, in data.Input) bool {
+func validatePlot(sps input.SubPrograms, in input.Config) bool {
 	if len(sps.Plot) != 0 && in.Plot != "" {
 		return true
 	}

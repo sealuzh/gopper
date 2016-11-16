@@ -1,13 +1,13 @@
-package data
+package input
 
-type Input struct {
+type Config struct {
 	In        []string
 	Out       []string
-	Transform []InputTransform
+	Transform []Transform
 	Plot      string
 }
 
-type InputTransform struct {
+type Transform struct {
 	TransFunc   string
 	TransParams []interface{}
 }
