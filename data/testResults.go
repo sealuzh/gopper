@@ -14,7 +14,7 @@ const sep = ';'
 const comment = '#'
 
 // Results
-type Results interface {
+type TestResults interface {
 	Add(r *ExecutionResult) error
 	AddTest(t *TestResult) error
 	Remove(test string) error
@@ -25,19 +25,19 @@ type Results interface {
 	HeadingString() string
 }
 
-func NewResults() Results {
-	return NewResultsWithHeading([]string{})
+func NewTestResults() TestResults {
+	return NewTestResultsWithHeading([]string{})
 }
 
-func NewResultsWithHeading(heading []string) Results {
-	return &resultsMap{
+func NewTestResultsWithHeading(heading []string) TestResults {
+	return &testResultsMap{
 		m:       make(map[string]*TestResult),
 		names:   make([]string, 0, minCapacity),
 		heading: heading,
 	}
 }
 
-func ResultsFromFile(path string) (data Results, err error) {
+func TestResultsFromFile(path string) (data TestResults, err error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func ResultsFromFile(path string) (data Results, err error) {
 	if err != nil {
 		return nil, err
 	}
-	res := NewResultsWithHeading(heading)
+	res := NewTestResultsWithHeading(heading)
 	for {
 		rec, err := r.Read()
 		if err != nil {
@@ -64,7 +64,7 @@ func ResultsFromFile(path string) (data Results, err error) {
 			}
 			break
 		}
-		result := newResult(rec)
+		result := newExecutionResult(rec)
 
 		if result == nil {
 			continue
@@ -78,18 +78,18 @@ func ResultsFromFile(path string) (data Results, err error) {
 	return res, nil
 }
 
-type resultsMap struct {
+type testResultsMap struct {
 	lock    sync.RWMutex
 	m       map[string]*TestResult
 	names   []string
 	heading []string
 }
 
-func (rm *resultsMap) Heading() []string {
+func (rm *testResultsMap) Heading() []string {
 	return rm.heading
 }
 
-func (rm *resultsMap) HeadingString() string {
+func (rm *testResultsMap) HeadingString() string {
 	ret := bytes.Buffer{}
 	h := rm.Heading()
 	for i, e := range h {
@@ -101,7 +101,7 @@ func (rm *resultsMap) HeadingString() string {
 	return ret.String()
 }
 
-func (rm *resultsMap) Add(r *ExecutionResult) error {
+func (rm *testResultsMap) Add(r *ExecutionResult) error {
 	if r == nil {
 		return fmt.Errorf("Result to add is nil")
 	}
@@ -123,7 +123,7 @@ func (rm *resultsMap) Add(r *ExecutionResult) error {
 	return nil
 }
 
-func (rm *resultsMap) AddTest(t *TestResult) error {
+func (rm *testResultsMap) AddTest(t *TestResult) error {
 	if t == nil {
 		return fmt.Errorf("Test to add is nil")
 	}
@@ -142,7 +142,7 @@ func (rm *resultsMap) AddTest(t *TestResult) error {
 	return nil
 }
 
-func (rm *resultsMap) Remove(test string) error {
+func (rm *testResultsMap) Remove(test string) error {
 	rm.lock.Lock()
 	defer rm.lock.Unlock()
 
@@ -176,7 +176,7 @@ func (rm *resultsMap) Remove(test string) error {
 	return nil
 }
 
-func (rm *resultsMap) Get(test string) (*TestResult, bool) {
+func (rm *testResultsMap) Get(test string) (*TestResult, bool) {
 	rm.lock.RLock()
 	e, ok := rm.m[test]
 	rm.lock.RUnlock()
@@ -186,13 +186,13 @@ func (rm *resultsMap) Get(test string) (*TestResult, bool) {
 	return e, true
 }
 
-func (rm *resultsMap) Length() int {
+func (rm *testResultsMap) Length() int {
 	rm.lock.RLock()
 	defer rm.lock.RUnlock()
 	return len(rm.m)
 }
 
-func (rm *resultsMap) TestNames() []string {
+func (rm *testResultsMap) TestNames() []string {
 	rm.lock.RLock()
 	defer rm.lock.RUnlock()
 	ret := make([]string, len(rm.m))

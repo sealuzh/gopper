@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-func newResult(record []string) *ExecutionResult {
+func newExecutionResult(record []string) *ExecutionResult {
 	if len(record) < 6 {
 		return nil
 	}

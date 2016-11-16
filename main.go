@@ -43,13 +43,13 @@ func main() {
 	ctx, f := context.WithCancel(ctx)
 	defer f()
 
-	var out []data.Results
+	var out []data.TestResults
 
 	// read in data
-	var ins []data.Results = make([]data.Results, len(input.In))
+	var ins []data.TestResults = make([]data.TestResults, len(input.In))
 	for i, in := range input.In {
 		in := path(in)
-		r, err := data.ResultsFromFile(in)
+		r, err := data.TestResultsFromFile(in)
 		if err != nil {
 			fmt.Printf("ERROR - could not read/parse file '%s': %v\n", in, err)
 			return
@@ -68,7 +68,7 @@ func main() {
 		// sequentially compute stages
 		if sp == spMerge {
 			// multi-input, single-output
-			out = []data.Results{data.Merge(ctx, out)}
+			out = []data.TestResults{data.Merge(ctx, out)}
 		} else {
 			// single-input, single-output
 			out = siso(ctx, sp, out, input)
@@ -91,9 +91,9 @@ func path(p string) string {
 	return p
 }
 
-func siso(ctx context.Context, sp string, ins []data.Results, in input.Config) []data.Results {
+func siso(ctx context.Context, sp string, ins []data.TestResults, in input.Config) []data.TestResults {
 	l := len(ins)
-	c := make(chan data.Results)
+	c := make(chan data.TestResults)
 	done := make(chan struct{})
 	for i, v := range ins {
 		i := i
@@ -129,7 +129,7 @@ func siso(ctx context.Context, sp string, ins []data.Results, in input.Config) [
 		close(done)
 	}()
 
-	res := make([]data.Results, 0, l)
+	res := make([]data.TestResults, 0, l)
 	for r := range c {
 		res = append(res, r)
 	}
@@ -181,7 +181,7 @@ func singleIntParam(f input.Transform) int {
 	}
 }
 
-func saveOut(d []data.Results, outPaths []string) {
+func saveOut(d []data.TestResults, outPaths []string) {
 	lo := len(outPaths)
 	ld := len(d)
 	if len(outPaths) == 0 {

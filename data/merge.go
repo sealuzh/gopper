@@ -5,8 +5,8 @@ import (
 	"fmt"
 )
 
-func Merge(ctx context.Context, ins []Results) Results {
-	r := NewResults()
+func Merge(ctx context.Context, ins []TestResults) TestResults {
+	r := NewTestResults()
 	for _, i := range ins {
 		for _, n := range i.TestNames() {
 			t, ok := i.Get(n)

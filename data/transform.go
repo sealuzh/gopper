@@ -7,8 +7,8 @@ import (
 
 type TransFunc func(context.Context, <-chan *TestResult) <-chan *TestResult
 
-func Transform(ctx context.Context, in Results, transformers ...TransFunc) Results {
-	ret := NewResults()
+func Transform(ctx context.Context, in TestResults, transformers ...TransFunc) TestResults {
+	ret := NewTestResults()
 	for _, r := range in.TestNames() {
 		tests, ok := in.Get(r)
 		if !ok {

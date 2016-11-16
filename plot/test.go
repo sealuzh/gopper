@@ -34,7 +34,7 @@ type pd struct {
 	data    *data.TestResult
 }
 
-func TimeSeries(ctx context.Context, in data.Results, plotDir string) data.Results {
+func TimeSeries(ctx context.Context, in data.TestResults, plotDir string) data.TestResults {
 	l := in.Length()
 	fmt.Printf("# Plot time series for %d tests\n", l)
 	handleDirectory(plotDir)
