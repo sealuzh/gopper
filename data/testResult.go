@@ -6,7 +6,7 @@ type TestResult struct {
 	Test             string
 }
 
-func (t TestResult) copy() *TestResult {
+func (t TestResult) Copy() *TestResult {
 	exRes := make([]*ExecutionResult, len(t.ExecutionResults))
 	copy(exRes, t.ExecutionResults)
 	return &TestResult{

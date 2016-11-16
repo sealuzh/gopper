@@ -17,6 +17,7 @@ import (
 	"bitbucket.org/sealuzh/gopper/data"
 	"bitbucket.org/sealuzh/gopper/data/input"
 	"bitbucket.org/sealuzh/gopper/plot"
+	"bitbucket.org/sealuzh/gopper/transform/filter"
 )
 
 const (
@@ -140,11 +141,11 @@ func transFuncsFromIn(in input.Config) []data.TransFunc {
 	for _, f := range in.Transform {
 		switch f.TransFunc {
 		case transMinMean:
-			fs = append(fs, data.MinMeanRuntime(singleFloat32Param(f)))
+			fs = append(fs, filter.MinMeanRuntime(singleFloat32Param(f)))
 		case transMinMedian:
-			fs = append(fs, data.MinMedianRuntime(singleFloat32Param(f)))
+			fs = append(fs, filter.MinMedianRuntime(singleFloat32Param(f)))
 		case transMinVersions:
-			fs = append(fs, data.MinVersions(singleIntParam(f)))
+			fs = append(fs, filter.MinVersions(singleIntParam(f)))
 		}
 	}
 	return fs
