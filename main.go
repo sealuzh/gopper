@@ -56,7 +56,7 @@ func main() {
 	// execute sub-programs
 	out = ins
 	for _, sp := range sps.List {
-		// decide on whether we have single or multi inoput and output
+		// decide on whether we have single or multi input and output
 		// sequentially compute stages
 		if sp == spMerge {
 			// multi-input, single-output

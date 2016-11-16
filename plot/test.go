@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"bitbucket.org/sealuzh/gopper/data"
@@ -26,20 +27,37 @@ const (
 )
 
 var multipleTestNames = 0
+var o sync.Once
+var ch chan pd
+
+type pd struct {
+	plotDir string
+	data    *data.TestResult
+}
 
 func TimeSeries(ctx context.Context, in data.Results, plotDir string) data.Results {
 	fmt.Printf("# Plot time series for %d tests\n", in.Length())
 	handleDirectory(plotDir)
 
 	start := time.Now()
+	o.Do(func() {
+		ch = make(chan pd)
+		go printPlot(ch)
+	})
 
 	for _, name := range in.TestNames() {
 		td, ok := in.Get(name)
 		if !ok {
 			panic(fmt.Sprintf("ERROR - Could not retrieve test '%s' from results", name))
 		}
-
-		printPlot(td, plotDir)
+		o.Do(func() {
+			ch = make(chan pd)
+			go printPlot(ch)
+		})
+		ch <- pd{
+			plotDir: plotDir,
+			data:    td,
+		}
 	}
 
 	fmt.Printf("# All tests plotted in %v\n", time.Since(start).String())
@@ -71,50 +89,57 @@ func handleDirectory(plotDir string) {
 	}
 }
 
-func printPlot(d *data.TestResult, plotDir string) {
-	p, err := pl.New()
-	if err != nil {
-		panic("ERROR - Could not create new plot")
-	}
-	title := d.Test
+func printPlot(c <-chan pd) {
+	for pd := range c {
+		p, err := pl.New()
+		if err != nil {
+			panic("ERROR - Could not create new plot")
+		}
 
-	fmt.Printf("  # Plot for test '%s'\n", title)
+		d := pd.data
+		plotDir := pd.plotDir
 
-	plotData, xTicks := plotData(d)
-	dataLength := len(plotData)
-	if dataLength < minPlotData {
-		fmt.Printf("    DEBUG - Not enough plot data available: %d\n", dataLength)
-		return
-	}
+		title := d.Test
 
-	p.Title.Text = title
-	p.X.Label.Text = xLabel
-	p.X.Tick.Marker = xTicks
-	p.X.Tick.Label.Rotation = math.Pi / 2
-	p.X.Tick.Label.XAlign = draw.XRight
-	p.X.Tick.Label.YAlign = draw.YCenter
-	p.Y.Label.Text = yLabel
+		fmt.Printf("  # Plot for test '%s'\n", title)
 
-	// display data
-	_, points, err := plotter.NewLinePoints(plotData)
-	points.Shape = draw.CircleGlyph{}
-	points.Color = color.RGBA{R: 0, G: 255, B: 255}
-	points.Radius = 2
+		plotData, xTicks := plotData(d)
+		dataLength := len(plotData)
+		if dataLength < minPlotData {
+			fmt.Printf("    DEBUG - Not enough plot data available: %d\n", dataLength)
+			return
+		}
 
-	p.Add(points)
+		p.Title.Text = title
+		p.X.Label.Text = xLabel
+		p.X.Tick.Marker = xTicks
+		p.X.Tick.Label.Rotation = math.Pi / 2
+		p.X.Tick.Label.XAlign = draw.XRight
+		p.X.Tick.Label.YAlign = draw.YCenter
+		p.Y.Label.Text = yLabel
 
-	// filename
-	i := strings.Index(title, "[")
-	fileName := title
-	if i != -1 {
-		multipleTestNames += 1
-		fileName = fmt.Sprintf("%s%d", fileName[:i], multipleTestNames)
-	}
-	fileName = fmt.Sprintf("%s%s", fileName, extension)
-	fileName = filepath.Join(plotDir, fileName)
-	err = p.Save(30*vg.Centimeter, 20*vg.Centimeter, fileName)
-	if err != nil {
-		fmt.Printf("    ERROR - Could not save plot: %v\n", err)
+		// display data
+		_, points, err := plotter.NewLinePoints(plotData)
+		points.Shape = draw.CircleGlyph{}
+		points.Color = color.RGBA{R: 0, G: 255, B: 255}
+		points.Radius = 2
+
+		p.Add(points)
+
+		// filename
+		i := strings.Index(title, "[")
+		fileName := title
+		if i != -1 {
+			multipleTestNames += 1
+			fileName = fmt.Sprintf("%s%d", fileName[:i], multipleTestNames)
+		}
+		fileName = fmt.Sprintf("%s%s", fileName, extension)
+		fileName = filepath.Join(plotDir, fileName)
+		err = p.Save(30*vg.Centimeter, 20*vg.Centimeter, fileName)
+		if err != nil {
+			fmt.Printf("    ERROR - Could not save plot: %v\n", err)
+		}
+
 	}
 }
 
