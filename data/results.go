@@ -16,6 +16,7 @@ const comment = '#'
 // Results
 type Results interface {
 	Add(r *ExecutionResult) error
+	AddTest(t *TestResult) error
 	Remove(test string) error
 	Get(test string) (testResults *TestResult, ok bool)
 	TestNames() []string
@@ -117,6 +118,25 @@ func (rm *resultsMap) Add(r *ExecutionResult) error {
 			Test:             r.Test,
 		}
 		rm.names = append(rm.names, r.Test)
+	}
+
+	return nil
+}
+
+func (rm *resultsMap) AddTest(t *TestResult) error {
+	if t == nil {
+		return fmt.Errorf("Test to add is nil")
+	}
+
+	rm.lock.Lock()
+	defer rm.lock.Unlock()
+
+	res, ok := rm.m[t.Test]
+	if ok {
+		res.ExecutionResults = append(res.ExecutionResults, t.ExecutionResults...)
+	} else {
+		rm.m[t.Test] = t
+		rm.names = append(rm.names, t.Test)
 	}
 
 	return nil

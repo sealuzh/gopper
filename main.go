@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strings"
+	"time"
 
 	"bitbucket.org/sealuzh/gopper/data"
 	"bitbucket.org/sealuzh/gopper/plot"
@@ -55,7 +57,11 @@ func main() {
 
 	// execute sub-programs
 	out = ins
-	for _, sp := range sps.List {
+	for i, sp := range sps.List {
+		spUpper := strings.ToUpper(sp)
+		stageNumber := i + 1
+		fmt.Printf("# %d - %s: start stage\n", stageNumber, spUpper)
+		startTime := time.Now()
 		// decide on whether we have single or multi input and output
 		// sequentially compute stages
 		if sp == spMerge {
@@ -65,6 +71,7 @@ func main() {
 			// single-input, single-output
 			out = siso(ctx, sp, out, input)
 		}
+		fmt.Printf("# %d - %s: finished stage in %v\n", stageNumber, spUpper, time.Since(startTime))
 	}
 
 	saveOut(out, input.Out)
@@ -195,6 +202,7 @@ func saveOut(d []data.Results, outPaths []string) {
 			w.Comma = comma
 			defer w.Flush()
 			w.Write(r.Heading())
+			w.Flush()
 			for _, n := range r.TestNames() {
 				rs, ok := r.Get(n)
 				if !ok {
@@ -277,9 +285,10 @@ func validateArguments(sps data.SubPrograms, in data.Input) {
 		invalid = true
 	}
 
-	invalid = !validateInOut(sps, in)
-	invalid = !validateTransformators(sps, in)
-	invalid = !validatePlot(sps, in)
+	invalid = invalid ||
+		!validateInOut(sps, in) ||
+		!validateTransformators(sps, in) ||
+		!validatePlot(sps, in)
 
 	if invalid {
 		fmt.Println()
@@ -298,7 +307,7 @@ func validateInOut(sps data.SubPrograms, in data.Input) bool {
 		valid = false
 	} else {
 		if len(sps.Merge) > 0 {
-			valid = lIn > 2 && lOut == 1
+			valid = lIn >= 2 && lOut == 1
 			if !valid {
 				fmt.Printf("Merge requires exactly one output file (was %d) and at least 2 input files (was %d)\n", lOut, lIn)
 			}

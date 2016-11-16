@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
 	"bitbucket.org/sealuzh/gopper/data"
 	pl "github.com/gonum/plot"
@@ -36,10 +35,10 @@ type pd struct {
 }
 
 func TimeSeries(ctx context.Context, in data.Results, plotDir string) data.Results {
-	fmt.Printf("# Plot time series for %d tests\n", in.Length())
+	l := in.Length()
+	fmt.Printf("# Plot time series for %d tests\n", l)
 	handleDirectory(plotDir)
 
-	start := time.Now()
 	o.Do(func() {
 		ch = make(chan pd)
 		go printPlot(ch)
@@ -60,7 +59,7 @@ func TimeSeries(ctx context.Context, in data.Results, plotDir string) data.Resul
 		}
 	}
 
-	fmt.Printf("# All tests plotted in %v\n", time.Since(start).String())
+	fmt.Printf("# %d tests plotted\n", l)
 
 	return in
 }
