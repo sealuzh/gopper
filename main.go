@@ -9,35 +9,25 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strings"
 	"time"
 
+	"bitbucket.org/sealuzh/gopper/analyse"
 	"bitbucket.org/sealuzh/gopper/data"
 	"bitbucket.org/sealuzh/gopper/data/input"
 	"bitbucket.org/sealuzh/gopper/plot"
 	"bitbucket.org/sealuzh/gopper/transform/filter"
+	"bitbucket.org/sealuzh/gopper/validate"
 )
 
-const (
-	comma            = ';'
-	spPlot           = "plot"
-	spFilter         = "filter"
-	spMerge          = "merge"
-	transMinMean     = "minMean"
-	transMinVersions = "minVersions"
-	transMinMedian   = "minMedian"
-)
-
-var subProgs = [...]string{spPlot, spFilter, spMerge}
-var transFuncs = [...]string{transMinMean, transMinMedian, transMinVersions}
+const comma = ';'
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	sps, input := parseArguments()
-	validateArguments(sps, input)
+	sps, config := parseArguments()
+	validate.Arguments(sps, config)
 
 	ctx := context.Background()
 	ctx, f := context.WithCancel(ctx)
@@ -46,8 +36,8 @@ func main() {
 	var out []data.TestResults
 
 	// read in data
-	var ins []data.TestResults = make([]data.TestResults, len(input.In))
-	for i, in := range input.In {
+	var ins []data.TestResults = make([]data.TestResults, len(config.In))
+	for i, in := range config.In {
 		in := path(in)
 		r, err := data.TestResultsFromFile(in)
 		if err != nil {
@@ -56,6 +46,8 @@ func main() {
 		}
 		ins[i] = r
 	}
+
+	anFunc := analysisFuncFromIn(config)
 
 	// execute sub-programs
 	out = ins
@@ -66,17 +58,18 @@ func main() {
 		startTime := time.Now()
 		// decide on whether we have single or multi input and output
 		// sequentially compute stages
-		if sp == spMerge {
+		if sp == input.SpMerge {
 			// multi-input, single-output
 			out = []data.TestResults{data.Merge(ctx, out)}
 		} else {
 			// single-input, single-output
-			out = siso(ctx, sp, out, input)
+			// hacky solution for passing the analysis function anFunc to this function
+			out = siso(ctx, sp, out, config, anFunc)
 		}
 		fmt.Printf("# %d - %s: finished stage in %v\n", stageNumber, spUpper, time.Since(startTime))
 	}
 
-	saveOut(out, input.Out)
+	saveOut(out, config.Out)
 }
 
 func path(p string) string {
@@ -91,7 +84,7 @@ func path(p string) string {
 	return p
 }
 
-func siso(ctx context.Context, sp string, ins []data.TestResults, in input.Config) []data.TestResults {
+func siso(ctx context.Context, sp string, ins []data.TestResults, in input.Config, af data.AnalysisFunc) []data.TestResults {
 	l := len(ins)
 	c := make(chan data.TestResults)
 	done := make(chan struct{})
@@ -100,10 +93,12 @@ func siso(ctx context.Context, sp string, ins []data.TestResults, in input.Confi
 		v := v
 		go func() {
 			switch sp {
-			case spPlot:
+			case input.SpPlot:
 				c <- plot.TimeSeries(ctx, v, fmt.Sprintf("%s%d", path(in.Plot), i))
-			case spFilter:
+			case input.SpFilter:
 				c <- data.Transform(ctx, v, transFuncsFromIn(in)...)
+			case input.SpAnalyse:
+				c <- data.Analyse(ctx, v, af)
 			default:
 				fmt.Printf("ERROR - Unknown Sub-Program '%v'\n", sp)
 			}
@@ -136,49 +131,52 @@ func siso(ctx context.Context, sp string, ins []data.TestResults, in input.Confi
 	return res
 }
 
+func analysisFuncFromIn(in input.Config) data.AnalysisFunc {
+	var f data.AnalysisFunc
+	funcName := in.Analyse.Name
+	switch funcName {
+	case input.AnalyseBcp:
+		p, err := input.StringParam(in.Analyse, 0)
+		if err != nil {
+			panic(err)
+		}
+		fn, err := analyse.Bcp(path(p))
+		if err != nil {
+			panic(err)
+		}
+		f = fn
+	default:
+		// shoud not happen, validity of function already checked by validateAnalysisFunc
+		panic(fmt.Sprintf("Invalid analysis function name '%s'", funcName))
+	}
+	return f
+}
+
 func transFuncsFromIn(in input.Config) []data.TransFunc {
 	fs := make([]data.TransFunc, 0, len(in.Transform))
 	for _, f := range in.Transform {
-		switch f.TransFunc {
-		case transMinMean:
-			fs = append(fs, filter.MinMeanRuntime(singleFloat32Param(f)))
-		case transMinMedian:
-			fs = append(fs, filter.MinMedianRuntime(singleFloat32Param(f)))
-		case transMinVersions:
-			fs = append(fs, filter.MinVersions(singleIntParam(f)))
+		switch f.Name {
+		case input.FilterMinMean:
+			v, err := input.Float32Param(f, 0)
+			if err != nil {
+				panic(err)
+			}
+			fs = append(fs, filter.MinMeanRuntime(v))
+		case input.FilterMinMedian:
+			v, err := input.Float32Param(f, 0)
+			if err != nil {
+				panic(err)
+			}
+			fs = append(fs, filter.MinMedianRuntime(v))
+		case input.FilterMinVersions:
+			v, err := input.IntParam(f, 0)
+			if err != nil {
+				panic(err)
+			}
+			fs = append(fs, filter.MinVersions(v))
 		}
 	}
 	return fs
-}
-
-func singleFloat32Param(f input.Transform) float32 {
-	pc := len(f.TransParams)
-	if pc != 1 {
-		panic(fmt.Sprintf("%s must have 1 parameter. Config provided %d", f.TransFunc, pc))
-	}
-
-	p := f.TransParams[0]
-	switch p := p.(type) {
-	case float64:
-		return float32(p)
-	default:
-		panic(fmt.Sprintf("%s parameter is of incompatible type: %v", f.TransFunc, reflect.TypeOf(p)))
-	}
-}
-
-func singleIntParam(f input.Transform) int {
-	pc := len(f.TransParams)
-	if pc != 1 {
-		panic(fmt.Sprintf("%s must have 1 parameter. Config provided %d", f.TransFunc, pc))
-	}
-
-	p := f.TransParams[0]
-	switch p := p.(type) {
-	case float64:
-		return int(p)
-	default:
-		panic(fmt.Sprintf("%s parameter is of incompatible type: %v", f.TransFunc, reflect.TypeOf(p)))
-	}
 }
 
 func saveOut(d []data.TestResults, outPaths []string) {
@@ -249,117 +247,16 @@ func parseArguments() (input.SubPrograms, input.Config) {
 	}
 	for k, s := range args {
 		switch s {
-		case spFilter:
+		case input.SpFilter:
 			sp.Transform = append(sp.Transform, k)
-		case spPlot:
+		case input.SpPlot:
 			sp.Plot = append(sp.Plot, k)
-		case spMerge:
+		case input.SpMerge:
 			sp.Merge = append(sp.Merge, k)
+		case input.SpAnalyse:
+			sp.Analyse = append(sp.Analyse, k)
 		}
 	}
 
 	return sp, d
-}
-
-func validateArguments(sps input.SubPrograms, in input.Config) {
-	var invalid bool
-	const (
-		argMissing = "Argument missing: %s\n"
-		argInvalid = "Argument invalid: %s\n"
-	)
-
-	// validate sub-program usage
-	if sps.Count == 0 {
-		fmt.Printf(argMissing, "sub programm")
-		invalid = true
-	} else {
-		// check if all suprogramms are allowed
-		allowed := sps.Count == (len(sps.Merge) + len(sps.Plot) + len(sps.Transform))
-		if !allowed {
-			fmt.Printf("Sub-programs specified invalid. Every sub-program must be from: %v\n", subProgs)
-			invalid = true
-		}
-	}
-
-	// validate config file, in is mandatory
-	if len(in.In) == 0 {
-		fmt.Printf(argMissing, "config file")
-		invalid = true
-	}
-
-	invalid = invalid ||
-		!validateInOut(sps, in) ||
-		!validateTransformators(sps, in) ||
-		!validatePlot(sps, in)
-
-	if invalid {
-		fmt.Println()
-		flag.Usage()
-		os.Exit(-1)
-	}
-}
-
-func validateInOut(sps input.SubPrograms, in input.Config) bool {
-	valid := true
-	lIn := len(in.In)
-	lOut := len(in.Out)
-	// input files
-	if lIn == 0 {
-		fmt.Printf("At least one input file is mandatory (was %d)\n", lIn)
-		valid = false
-	} else {
-		if len(sps.Merge) > 0 {
-			valid = lIn >= 2 && lOut == 1
-			if !valid {
-				fmt.Printf("Merge requires exactly one output file (was %d) and at least 2 input files (was %d)\n", lOut, lIn)
-			}
-		} else {
-			// Either no out files specified or number of in and out files is the same
-			valid = lOut == 0 || lIn == lOut
-			if !valid {
-				fmt.Printf("Output file numbers must be 0, or input and output file number must be equivalent (was in=%d, out=%d)", lIn, lOut)
-			}
-		}
-	}
-
-	return valid
-}
-
-func validateTransformators(sps input.SubPrograms, in input.Config) bool {
-	valid := true
-
-	lSpTrans := len(sps.Transform)
-	if lSpTrans == 0 {
-		return true
-	}
-
-	// validate Transform
-	if len(in.Transform) != 0 {
-		for _, t := range in.Transform {
-			var contains bool
-			for _, tf := range transFuncs {
-				if t.TransFunc == tf {
-					contains = true
-					break
-				}
-			}
-
-			if !contains {
-				fmt.Printf("Invalid transformer function '%s'. Must be one of %v.\n", t, transFuncs)
-				valid = false
-				break
-			}
-		}
-	} else {
-		valid = false
-	}
-
-	return valid
-}
-
-func validatePlot(sps input.SubPrograms, in input.Config) bool {
-	if len(sps.Plot) != 0 && in.Plot != "" {
-		return true
-	}
-	return false
 }

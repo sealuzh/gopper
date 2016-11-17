@@ -29,6 +29,9 @@ var multipleTestNames = 0
 var o sync.Once
 var ch chan pd
 
+// does not support multiple stages
+var wg sync.WaitGroup
+
 type pd struct {
 	plotDir string
 	data    *data.TestResult
@@ -41,23 +44,22 @@ func TimeSeries(ctx context.Context, in data.TestResults, plotDir string) data.T
 
 	o.Do(func() {
 		ch = make(chan pd)
-		go printPlot(ch)
+		go printPlot(ch, &wg)
 	})
 
 	for _, name := range in.TestNames() {
+		wg.Add(1)
 		td, ok := in.Get(name)
 		if !ok {
 			panic(fmt.Sprintf("ERROR - Could not retrieve test '%s' from results", name))
 		}
-		o.Do(func() {
-			ch = make(chan pd)
-			go printPlot(ch)
-		})
 		ch <- pd{
 			plotDir: plotDir,
 			data:    td,
 		}
 	}
+
+	wg.Wait()
 
 	fmt.Printf("# %d tests plotted\n", l)
 
@@ -88,7 +90,7 @@ func handleDirectory(plotDir string) {
 	}
 }
 
-func printPlot(c <-chan pd) {
+func printPlot(c <-chan pd, wg *sync.WaitGroup) {
 	for pd := range c {
 		p, err := pl.New()
 		if err != nil {
@@ -122,7 +124,6 @@ func printPlot(c <-chan pd) {
 		points.Shape = draw.CircleGlyph{}
 		points.Color = color.RGBA{R: 0, G: 255, B: 255}
 		points.Radius = 2
-
 		p.Add(points)
 
 		// filename
@@ -138,7 +139,7 @@ func printPlot(c <-chan pd) {
 		if err != nil {
 			fmt.Printf("    ERROR - Could not save plot: %v\n", err)
 		}
-
+		wg.Done()
 	}
 }
 

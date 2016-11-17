@@ -4,6 +4,7 @@ type TestResult struct {
 	ExecutionResults []*ExecutionResult
 	Project          string
 	Test             string
+	ChangePoints     []string
 }
 
 func (t TestResult) Copy() *TestResult {

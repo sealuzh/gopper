@@ -3,13 +3,14 @@ package input
 type Config struct {
 	In        []string
 	Out       []string
-	Transform []Transform
+	Transform []Func
+	Analyse   Func
 	Plot      string
 }
 
-type Transform struct {
-	TransFunc   string
-	TransParams []interface{}
+type Func struct {
+	Name   string
+	Params []interface{}
 }
 
 type SubPrograms struct {
@@ -18,4 +19,5 @@ type SubPrograms struct {
 	Plot      []int
 	Transform []int
 	Merge     []int
+	Analyse   []int
 }
