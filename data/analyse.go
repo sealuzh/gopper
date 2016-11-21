@@ -10,7 +10,7 @@ const (
 	maxWorkers = 10
 )
 
-type AnalysisFunc func(context.Context, *TestResult) ([]string, error)
+type AnalysisFunc func(context.Context, *TestResult) (map[string]*ExecutionResult, error)
 
 func Analyse(ctx context.Context, in TestResults, f AnalysisFunc) TestResults {
 	res := make(chan *TestResult)

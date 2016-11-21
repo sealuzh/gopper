@@ -4,7 +4,7 @@ type TestResult struct {
 	ExecutionResults []*ExecutionResult
 	Project          string
 	Test             string
-	ChangePoints     []string
+	ChangePoints     map[string]*ExecutionResult
 }
 
 func (t TestResult) Copy() *TestResult {
@@ -14,6 +14,7 @@ func (t TestResult) Copy() *TestResult {
 		Project:          t.Project,
 		Test:             t.Test,
 		ExecutionResults: exRes,
+		ChangePoints:     make(map[string]*ExecutionResult),
 	}
 }
 

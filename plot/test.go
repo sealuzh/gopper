@@ -104,7 +104,7 @@ func printPlot(c <-chan pd, wg *sync.WaitGroup) {
 
 		fmt.Printf("  # Plot for test '%s'\n", title)
 
-		plotData, xTicks := plotData(d)
+		plotData, cps, xTicks := plotData(d)
 		dataLength := len(plotData)
 		if dataLength < minPlotData {
 			fmt.Printf("    DEBUG - Not enough plot data available: %d\n", dataLength)
@@ -126,6 +126,13 @@ func printPlot(c <-chan pd, wg *sync.WaitGroup) {
 		points.Radius = 2
 		p.Add(points)
 
+		// cps
+		_, cpPoints, err := plotter.NewLinePoints(cps)
+		cpPoints.Shape = draw.CircleGlyph{}
+		cpPoints.Color = color.RGBA{R: 255, G: 255, B: 0}
+		cpPoints.Radius = 2
+		p.Add(cpPoints)
+
 		// filename
 		i := strings.Index(title, "[")
 		fileName := title
@@ -143,18 +150,30 @@ func printPlot(c <-chan pd, wg *sync.WaitGroup) {
 	}
 }
 
-func plotData(testResult *data.TestResult) (plotter.XYs, VersionTicker) {
+func plotData(testResult *data.TestResult) (plotter.XYs, plotter.XYs, VersionTicker) {
 	d := testResult.ExecutionResults
 	l := len(d)
-	data := make(plotter.XYs, l, l)
+	lcps := len(testResult.ChangePoints)
+	data := make(plotter.XYs, l-lcps)
+	dataCount := 0
+	cps := make(plotter.XYs, lcps)
+	cpCount := 0
 	ticks := make([]pl.Tick, l, l)
 	for i, r := range d {
-		data[i].X = float64(i)
-		data[i].Y = float64(r.RawVal)
+		_, ok := testResult.ChangePoints[r.SHA]
+		if ok {
+			cps[cpCount].X = float64(i)
+			cps[cpCount].Y = float64(r.RawVal)
+			cpCount++
+		} else {
+			data[dataCount].X = float64(i)
+			data[dataCount].Y = float64(r.RawVal)
+			dataCount++
+		}
 		ticks[i].Label = r.SHA
 		ticks[i].Value = float64(i)
 	}
-	return data, VersionTicker(ticks)
+	return data, cps, VersionTicker(ticks)
 }
 
 type VersionTicker []pl.Tick
