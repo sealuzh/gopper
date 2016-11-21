@@ -47,6 +47,21 @@ func Float32Param(f Func, pos int) (float32, error) {
 	}
 }
 
+func Float64Param(f Func, pos int) (float64, error) {
+	err := checkParams("Float64Param", f, pos)
+	if err != nil {
+		return 0, err
+	}
+
+	p := f.Params[pos]
+	switch p := p.(type) {
+	case float64:
+		return p, nil
+	default:
+		return 0, fmt.Errorf("%s parameter is of incompatible type: %v", f.Name, reflect.TypeOf(p))
+	}
+}
+
 func IntParam(f Func, pos int) (int, error) {
 	err := checkParams("IntParam", f, pos)
 	if err != nil {

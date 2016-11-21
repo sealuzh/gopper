@@ -127,7 +127,11 @@ func analysisFuncFromIn(in input.Config) data.AnalysisFunc {
 		if err != nil {
 			panic(err)
 		}
-		fn, err := analyse.Bcp(util.AbsolutePath(p))
+		probability, err := input.Float64Param(in.Analyse, 1)
+		if err != nil {
+			panic(err)
+		}
+		fn, err := analyse.Bcp(util.AbsolutePath(p), probability)
 		if err != nil {
 			panic(err)
 		}
