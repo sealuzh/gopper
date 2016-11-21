@@ -9,7 +9,7 @@ import (
 )
 
 func Bcp(script string) (data.AnalysisFunc, error) {
-	rm := newRManager()
+	rm := newLocalRManager()
 	b, err := ioutil.ReadFile(script)
 	if err != nil {
 		return nil, err

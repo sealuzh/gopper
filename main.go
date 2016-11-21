@@ -7,8 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/user"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -18,6 +16,7 @@ import (
 	"bitbucket.org/sealuzh/gopper/data/input"
 	"bitbucket.org/sealuzh/gopper/plot"
 	"bitbucket.org/sealuzh/gopper/transform/filter"
+	"bitbucket.org/sealuzh/gopper/util"
 	"bitbucket.org/sealuzh/gopper/validate"
 )
 
@@ -38,7 +37,7 @@ func main() {
 	// read in data
 	var ins []data.TestResults = make([]data.TestResults, len(config.In))
 	for i, in := range config.In {
-		in := path(in)
+		in := util.AbsolutePath(in)
 		r, err := data.TestResultsFromFile(in)
 		if err != nil {
 			fmt.Printf("ERROR - could not read/parse file '%s': %v\n", in, err)
@@ -72,18 +71,6 @@ func main() {
 	saveOut(out, config.Out)
 }
 
-func path(p string) string {
-	usr, err := user.Current()
-	if err != nil {
-		panic(fmt.Sprintf("No current user available: %v", err))
-	}
-	tilde := "~/"
-	if len(p) > 2 && p[:2] == tilde {
-		return filepath.Join(usr.HomeDir, p[2:])
-	}
-	return p
-}
-
 func siso(ctx context.Context, sp string, ins []data.TestResults, in input.Config, af data.AnalysisFunc) []data.TestResults {
 	l := len(ins)
 	c := make(chan data.TestResults)
@@ -94,7 +81,7 @@ func siso(ctx context.Context, sp string, ins []data.TestResults, in input.Confi
 		go func() {
 			switch sp {
 			case input.SpPlot:
-				c <- plot.TimeSeries(ctx, v, fmt.Sprintf("%s%d", path(in.Plot), i))
+				c <- plot.TimeSeries(ctx, v, fmt.Sprintf("%s%d", util.AbsolutePath(in.Plot), i))
 			case input.SpFilter:
 				c <- data.Transform(ctx, v, transFuncsFromIn(in)...)
 			case input.SpAnalyse:
@@ -140,7 +127,7 @@ func analysisFuncFromIn(in input.Config) data.AnalysisFunc {
 		if err != nil {
 			panic(err)
 		}
-		fn, err := analyse.Bcp(path(p))
+		fn, err := analyse.Bcp(util.AbsolutePath(p))
 		if err != nil {
 			panic(err)
 		}
@@ -192,7 +179,7 @@ func saveOut(d []data.TestResults, outPaths []string) {
 	}
 
 	for i, r := range d {
-		outPath := path(outPaths[i])
+		outPath := util.AbsolutePath(outPaths[i])
 		f, err := os.Create(outPath)
 		if err != nil {
 			fmt.Printf("ERROR - Could not open output file '%v': %v", outPath, err)

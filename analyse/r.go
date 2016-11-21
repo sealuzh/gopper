@@ -2,38 +2,37 @@ package analyse
 
 import (
 	"fmt"
-	"sync"
-	"sync/atomic"
 
 	"github.com/senseyeio/roger"
 )
 
-const rHost = "127.0.0.1"
-
-var rPort int64 = 6310
+const (
+	rHost = "127.0.0.1"
+	rPort = 6311
+)
 
 type rManager struct {
-	host       string
-	port       int64
-	c          roger.RClient
-	createOnce sync.Once
+	host string
+	port int64
+	c    roger.RClient
 }
 
-func newRManager() *rManager {
-	p := atomic.AddInt64(&rPort, 1)
+func newRManager(host string, port int64) *rManager {
+	c, err := roger.NewRClient(host, port)
+	if err != nil {
+		panic(fmt.Sprintf("Could not create RClient for host=%s and port=%d: %v", host, port, err))
+	}
 	return &rManager{
-		host: rHost,
-		port: p,
+		host: host,
+		port: port,
+		c:    c,
 	}
 }
 
-func (m *rManager) client() roger.RClient {
-	m.createOnce.Do(func() {
-		c, err := roger.NewRClient(m.host, m.port)
-		if err != nil {
-			panic(fmt.Sprintf("Could not create RClient for host=%s and port=%d", m.host, m.port))
-		}
-		m.c = c
-	})
-	return m.c
+func newLocalRManager() *rManager {
+	return newRManager(rHost, rPort)
+}
+
+func (rm *rManager) client() roger.RClient {
+	return rm.c
 }

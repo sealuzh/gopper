@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"bitbucket.org/sealuzh/gopper/data/input"
+	"bitbucket.org/sealuzh/gopper/util"
 )
 
 func AnalysisFunc(sps input.SubPrograms, in input.Config) bool {
@@ -39,7 +40,7 @@ func AnalysisFunc(sps input.SubPrograms, in input.Config) bool {
 		fmt.Printf("Analysis function parameter can not be retrieved: %v\n", err)
 		return false
 	}
-	s, err := os.Stat(path)
+	s, err := os.Stat(util.AbsolutePath(path))
 	if err != nil {
 		fmt.Printf("Analysis function script not accessible: %v\n", err)
 		valid = false
