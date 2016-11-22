@@ -50,11 +50,12 @@ func main() {
 
 	// execute sub-programs
 	out = ins
+	startTime := time.Now()
 	for i, sp := range sps.List {
 		spUpper := strings.ToUpper(sp)
 		stageNumber := i + 1
 		fmt.Printf("# %d - %s: start stage\n", stageNumber, spUpper)
-		startTime := time.Now()
+		stageStart := time.Now()
 		// decide on whether we have single or multi input and output
 		// sequentially compute stages
 		if sp == input.SpMerge {
@@ -65,8 +66,9 @@ func main() {
 			// hacky solution for passing the analysis function anFunc to this function
 			out = siso(ctx, sp, out, config, anFunc)
 		}
-		fmt.Printf("# %d - %s: finished stage in %v\n", stageNumber, spUpper, time.Since(startTime))
+		fmt.Printf("# %d - %s: finished stage in %v\n", stageNumber, spUpper, time.Since(stageStart))
 	}
+	fmt.Printf("# Total execution time: %v\n", time.Since(startTime))
 
 	saveOut(out, config.Out)
 }
@@ -132,6 +134,20 @@ func analysisFuncFromIn(in input.Config) data.AnalysisFunc {
 			panic(err)
 		}
 		fn, err := analyse.Bcp(util.AbsolutePath(p), probability)
+		if err != nil {
+			panic(err)
+		}
+		f = fn
+	case input.AnalyseTwitter:
+		p, err := input.StringParam(in.Analyse, 0)
+		if err != nil {
+			panic(err)
+		}
+		minMean, err := input.IntParam(in.Analyse, 1)
+		if err != nil {
+			panic(err)
+		}
+		fn, err := analyse.Twitter(util.AbsolutePath(p), minMean)
 		if err != nil {
 			panic(err)
 		}

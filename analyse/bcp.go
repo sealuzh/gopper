@@ -9,10 +9,6 @@ import (
 	"bitbucket.org/sealuzh/gopper/data"
 )
 
-const (
-	rvarTestData = "td"
-)
-
 func Bcp(script string, probability float64) (data.AnalysisFunc, error) {
 	rm := newLocalRManager()
 	b, err := ioutil.ReadFile(script)
@@ -25,19 +21,7 @@ func Bcp(script string, probability float64) (data.AnalysisFunc, error) {
 			return nil, fmt.Errorf("Bcp function: parameter tr is nil")
 		}
 
-		rc := rm.client()
-		s, err := rc.GetSession()
-		if err != nil {
-			return nil, err
-		}
-		defer s.Close()
-
-		d := vectorise(tr)
-		err = s.Assign(rvarTestData, d)
-		if err != nil {
-			return nil, fmt.Errorf("Bcp function: could not assign test data")
-		}
-		res, err := s.Eval(f)
+		res, err := rm.evaluate(tr, f)
 		if err != nil {
 			return nil, err
 		}
