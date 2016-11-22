@@ -44,10 +44,10 @@ func Twitter(script string, minMean int) (data.AnalysisFunc, error) {
 		ler := len(tr.ExecutionResults)
 		for _, cp := range resTyped {
 			cp := int(cp)
-			if cp >= ler {
+			if cp > ler {
 				return nil, fmt.Errorf("Twitter function: change point (%d) is out of range (%d)", cp, ler)
 			}
-			er := tr.ExecutionResults[cp]
+			er := tr.ExecutionResults[cp-1]
 			ret[er.SHA] = er
 		}
 		fmt.Printf("  %d change points in %s\n", len(ret), tr.Test)
