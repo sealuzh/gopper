@@ -120,14 +120,14 @@ func printPlot(c <-chan pd, wg *sync.WaitGroup) {
 		p.Y.Label.Text = yLabel
 
 		// display data
-		_, points, err := plotter.NewLinePoints(plotData)
+		points, err := plotter.NewScatter(plotData)
 		points.Shape = draw.CircleGlyph{}
 		points.Color = color.RGBA{R: 0, G: 255, B: 255}
 		points.Radius = 2
 		p.Add(points)
 
 		// cps
-		_, cpPoints, err := plotter.NewLinePoints(cps)
+		cpPoints, err := plotter.NewScatter(cps)
 		cpPoints.Shape = draw.CircleGlyph{}
 		cpPoints.Color = color.RGBA{R: 255, G: 255, B: 0}
 		cpPoints.Radius = 2
