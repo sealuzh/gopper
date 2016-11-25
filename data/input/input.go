@@ -14,10 +14,7 @@ type Func struct {
 }
 
 type SubPrograms struct {
-	Count     int
-	List      []string
-	Plot      []int
-	Transform []int
-	Merge     []int
-	Analyse   []int
+	Count       int
+	List        []string
+	Occurrences map[string][]int
 }

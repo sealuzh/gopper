@@ -15,7 +15,7 @@ func InOut(sps input.SubPrograms, in input.Config) bool {
 		fmt.Printf("At least one input file is mandatory (was %d)\n", lIn)
 		valid = false
 	} else {
-		if len(sps.Merge) > 0 {
+		if len(sps.Occurrences[input.SpMerge]) > 0 {
 			valid = lIn >= 2 && lOut == 1
 			if !valid {
 				fmt.Printf("Merge requires exactly one output file (was %d) and at least 2 input files (was %d)\n", lOut, lIn)

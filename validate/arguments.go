@@ -21,7 +21,11 @@ func Arguments(sps input.SubPrograms, in input.Config) {
 		invalid = true
 	} else {
 		// check if all suprogramms are allowed
-		allowed := sps.Count == (len(sps.Merge) + len(sps.Plot) + len(sps.Transform) + len(sps.Analyse))
+		spsCount := 0
+		for _, spsProvided := range sps.Occurrences {
+			spsCount += len(spsProvided)
+		}
+		allowed := sps.Count == spsCount
 		if !allowed {
 			fmt.Printf("Sub-programs specified invalid. Every sub-program must be from: %v\n", input.SubProgs)
 			invalid = true

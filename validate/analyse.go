@@ -9,7 +9,7 @@ import (
 )
 
 func AnalysisFunc(sps input.SubPrograms, in input.Config) bool {
-	if len(sps.Analyse) == 0 {
+	if len(sps.Occurrences[input.SpAnalyse]) == 0 {
 		return false
 	}
 

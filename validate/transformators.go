@@ -9,7 +9,7 @@ import (
 func Transformators(sps input.SubPrograms, in input.Config) bool {
 	valid := true
 
-	lSpTrans := len(sps.Transform)
+	lSpTrans := len(sps.Occurrences[input.SpFilter])
 	if lSpTrans == 0 {
 		return true
 	}

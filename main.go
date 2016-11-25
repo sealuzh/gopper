@@ -249,19 +249,25 @@ func parseArguments() (input.SubPrograms, input.Config) {
 
 	args := flag.Args()
 	sp := input.SubPrograms{
-		Count: len(args),
-		List:  args,
+		Count:       len(args),
+		List:        args,
+		Occurrences: map[string][]int{},
 	}
 	for k, s := range args {
-		switch s {
-		case input.SpFilter:
-			sp.Transform = append(sp.Transform, k)
-		case input.SpPlot:
-			sp.Plot = append(sp.Plot, k)
-		case input.SpMerge:
-			sp.Merge = append(sp.Merge, k)
-		case input.SpAnalyse:
-			sp.Analyse = append(sp.Analyse, k)
+		allowed := s == input.SpAnalyse ||
+			s == input.SpFilter ||
+			s == input.SpMerge ||
+			s == input.SpPlot ||
+			s == input.SpTRsToCPs
+		if allowed {
+			_, ok := sp.Occurrences[s]
+			if ok {
+				sp.Occurrences[s] = append(sp.Occurrences[s], k)
+			} else {
+				sp.Occurrences[s] = []int{k}
+			}
+		} else {
+			panic(fmt.Sprintf("ERROR - dissallowed sub program specified '%s'", s))
 		}
 	}
 
