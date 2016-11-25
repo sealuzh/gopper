@@ -20,6 +20,7 @@ type TestResults interface {
 	Remove(test string) error
 	Get(test string) (testResults *TestResult, ok bool)
 	TestNames() []string
+	All() <-chan *TestResult
 	Len() int
 	Heading() []string
 	HeadingString() string
@@ -191,6 +192,23 @@ func (rm *testResultsMap) Len() int {
 	rm.lock.RLock()
 	defer rm.lock.RUnlock()
 	return len(rm.m)
+}
+
+func (rm *testResultsMap) All() <-chan *TestResult {
+	rm.lock.RLock()
+	c := make(chan *TestResult, len(rm.names))
+	go func() {
+		for _, tn := range rm.names {
+			tr, ok := rm.m[tn]
+			if !ok {
+				panic(fmt.Sprintf("TestResults.All inconsistent state for test name '%s'", tn))
+			}
+			c <- tr
+		}
+		close(c)
+		rm.lock.RUnlock()
+	}()
+	return c
 }
 
 func (rm *testResultsMap) TestNames() []string {
