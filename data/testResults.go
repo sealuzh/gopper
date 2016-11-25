@@ -20,7 +20,7 @@ type TestResults interface {
 	Remove(test string) error
 	Get(test string) (testResults *TestResult, ok bool)
 	TestNames() []string
-	Length() int
+	Len() int
 	Heading() []string
 	HeadingString() string
 }
@@ -187,7 +187,7 @@ func (rm *testResultsMap) Get(test string) (*TestResult, bool) {
 	return e, true
 }
 
-func (rm *testResultsMap) Length() int {
+func (rm *testResultsMap) Len() int {
 	rm.lock.RLock()
 	defer rm.lock.RUnlock()
 	return len(rm.m)

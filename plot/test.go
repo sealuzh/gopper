@@ -38,7 +38,7 @@ type pd struct {
 }
 
 func TimeSeries(ctx context.Context, in data.TestResults, plotDir string) data.TestResults {
-	l := in.Length()
+	l := in.Len()
 	fmt.Printf("# Plot time series for %d tests\n", l)
 	handleDirectory(plotDir)
 
