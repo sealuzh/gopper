@@ -16,7 +16,7 @@ func Bcp(script string, probability float64) (data.AnalysisFunc, error) {
 		return nil, err
 	}
 	f := string(b)
-	return func(ctx context.Context, tr *data.TestResult) (map[string]*data.ExecutionResult, error) {
+	return func(ctx context.Context, tr *data.TestResult) (data.ChangePoints, error) {
 		if tr == nil {
 			return nil, fmt.Errorf("Bcp function: parameter tr is nil")
 		}
@@ -40,14 +40,22 @@ func Bcp(script string, probability float64) (data.AnalysisFunc, error) {
 			return nil, fmt.Errorf("Bcp functions: returned change points (%d) not equal to execution results (%d)", lcps, ler)
 		}
 
-		ret := make(map[string]*data.ExecutionResult)
+		ret := data.NewChangePoints()
+		cpCount := 0
 		for i, cp := range cps {
 			if cp >= probability {
-				er := tr.ExecutionResults[i]
-				ret[er.SHA] = er
+				ncp, err := data.NewChangePoint(tr.ExecutionResults[i])
+				if err != nil {
+					return nil, err
+				}
+				err = ret.Add(ncp)
+				if err != nil {
+					return nil, err
+				}
+				cpCount++
 			}
 		}
-		fmt.Printf("  %d change points in %s\n", len(ret), tr.Test)
+		fmt.Printf("  %d change points in %s\n", cpCount, tr.Test)
 		return ret, nil
 	}, nil
 }

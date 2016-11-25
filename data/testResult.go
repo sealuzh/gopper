@@ -1,20 +1,32 @@
 package data
 
+const (
+	defaultExecutionResultLength = 30
+)
+
 type TestResult struct {
 	ExecutionResults []*ExecutionResult
 	Project          string
 	Test             string
-	ChangePoints     map[string]*ExecutionResult
+	ChangePoints     ChangePoints
 }
 
 func (t TestResult) Copy() *TestResult {
 	exRes := make([]*ExecutionResult, len(t.ExecutionResults))
 	copy(exRes, t.ExecutionResults)
+
+	var cps ChangePoints
+	if t.ChangePoints == nil {
+		cps = NewChangePoints()
+	} else {
+		cps = t.ChangePoints.Copy()
+	}
+
 	return &TestResult{
 		Project:          t.Project,
 		Test:             t.Test,
 		ExecutionResults: exRes,
-		ChangePoints:     make(map[string]*ExecutionResult),
+		ChangePoints:     cps,
 	}
 }
 

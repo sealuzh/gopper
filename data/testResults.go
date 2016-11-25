@@ -116,6 +116,7 @@ func (rm *testResultsMap) Add(r *ExecutionResult) error {
 			ExecutionResults: append(make([]*ExecutionResult, 0, minCapacity), r),
 			Project:          r.Project,
 			Test:             r.Test,
+			ChangePoints:     NewChangePoints(),
 		}
 		rm.names = append(rm.names, r.Test)
 	}

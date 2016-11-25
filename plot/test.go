@@ -153,14 +153,15 @@ func printPlot(c <-chan pd, wg *sync.WaitGroup) {
 func plotData(testResult *data.TestResult) (plotter.XYs, plotter.XYs, VersionTicker) {
 	d := testResult.ExecutionResults
 	l := len(d)
-	lcps := len(testResult.ChangePoints)
+	lcps := len(testResult.ChangePoints.All())
 	data := make(plotter.XYs, l-lcps)
 	dataCount := 0
 	cps := make(plotter.XYs, lcps)
 	cpCount := 0
 	ticks := make([]pl.Tick, l, l)
+
 	for i, r := range d {
-		_, ok := testResult.ChangePoints[r.SHA]
+		_, ok := testResult.ChangePoints.Get(r.SHA)
 		if ok {
 			cps[cpCount].X = float64(i)
 			cps[cpCount].Y = float64(r.RawVal)

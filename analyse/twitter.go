@@ -20,7 +20,7 @@ func Twitter(script string, minMean int) (data.AnalysisFunc, error) {
 		return nil, err
 	}
 	f := string(s)
-	return func(ctx context.Context, tr *data.TestResult) (map[string]*data.ExecutionResult, error) {
+	return func(ctx context.Context, tr *data.TestResult) (data.ChangePoints, error) {
 		if tr == nil {
 			return nil, fmt.Errorf("Twitter function: parameter tr is nil")
 		}
@@ -40,17 +40,22 @@ func Twitter(script string, minMean int) (data.AnalysisFunc, error) {
 			return nil, fmt.Errorf("Twitter function: r script returned wrong result type '%v'", reflect.TypeOf(rt))
 		}
 
-		ret := make(map[string]*data.ExecutionResult)
+		cps := data.NewChangePoints()
+		cpCount := 0
 		ler := len(tr.ExecutionResults)
 		for _, cp := range resTyped {
 			cp := int(cp)
 			if cp > ler {
 				return nil, fmt.Errorf("Twitter function: change point (%d) is out of range (%d)", cp, ler)
 			}
-			er := tr.ExecutionResults[cp-1]
-			ret[er.SHA] = er
+			newCp, err := data.NewChangePoint(tr.ExecutionResults[cp-1])
+			if err != nil {
+				return nil, err
+			}
+			cps.Add(newCp)
+			cpCount++
 		}
-		fmt.Printf("  %d change points in %s\n", len(ret), tr.Test)
-		return ret, nil
+		fmt.Printf("  %d change points in %s\n", cpCount, tr.Test)
+		return cps, nil
 	}, nil
 }
