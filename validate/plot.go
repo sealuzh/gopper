@@ -8,7 +8,7 @@ func Plot(sps input.SubPrograms, in input.Config) bool {
 		return true
 	}
 
-	if in.Plot != "" {
+	if in.Out.Plot != "" {
 		return true
 	}
 	return false

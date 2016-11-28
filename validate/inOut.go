@@ -9,7 +9,7 @@ import (
 func InOut(sps input.SubPrograms, in input.Config) bool {
 	valid := true
 	lIn := len(in.In)
-	lOut := len(in.Out)
+	lOut := len(in.Out.TestResults)
 	// input files
 	if lIn == 0 {
 		fmt.Printf("At least one input file is mandatory (was %d)\n", lIn)

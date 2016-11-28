@@ -1,4 +1,4 @@
-package plot
+package save
 
 import (
 	"context"
@@ -37,7 +37,7 @@ type pd struct {
 	data    *data.TestResult
 }
 
-func TimeSeries(ctx context.Context, in data.TestResults, plotDir string) data.TestResults {
+func Plots(ctx context.Context, in data.TestResults, plotDir string) {
 	l := in.Len()
 	fmt.Printf("# Plot time series for %d tests\n", l)
 	handleDirectory(plotDir)
@@ -62,8 +62,6 @@ func TimeSeries(ctx context.Context, in data.TestResults, plotDir string) data.T
 	wg.Wait()
 
 	fmt.Printf("# %d tests plotted\n", l)
-
-	return in
 }
 
 func handleDirectory(plotDir string) {

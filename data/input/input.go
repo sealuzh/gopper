@@ -2,10 +2,9 @@ package input
 
 type Config struct {
 	In        []string
-	Out       []string
+	Out       Out
 	Transform []Func
 	Analyse   Func
-	Plot      string
 }
 
 type Func struct {
@@ -17,4 +16,10 @@ type SubPrograms struct {
 	Count       int
 	List        []string
 	Occurrences map[string][]int
+}
+
+type Out struct {
+	TestResults  []string
+	ChangePoints []string
+	Plot         string
 }

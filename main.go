@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -14,7 +13,8 @@ import (
 	"bitbucket.org/sealuzh/gopper/analyse"
 	"bitbucket.org/sealuzh/gopper/data"
 	"bitbucket.org/sealuzh/gopper/data/input"
-	"bitbucket.org/sealuzh/gopper/plot"
+	"bitbucket.org/sealuzh/gopper/save"
+	"bitbucket.org/sealuzh/gopper/transform"
 	"bitbucket.org/sealuzh/gopper/transform/filter"
 	"bitbucket.org/sealuzh/gopper/util"
 	"bitbucket.org/sealuzh/gopper/validate"
@@ -32,7 +32,8 @@ func main() {
 	ctx, f := context.WithCancel(ctx)
 	defer f()
 
-	var out []data.TestResults
+	var outTr []data.TestResults
+	var outCp []data.ChangePoints
 
 	// read in data
 	var ins []data.TestResults = make([]data.TestResults, len(config.In))
@@ -49,41 +50,72 @@ func main() {
 	anFunc := analysisFuncFromIn(config)
 
 	// execute sub-programs
-	out = ins
+	outTr = ins
 	startTime := time.Now()
 	for i, sp := range sps.List {
 		spUpper := strings.ToUpper(sp)
 		stageNumber := i + 1
 		fmt.Printf("# %d - %s: start stage\n", stageNumber, spUpper)
 		stageStart := time.Now()
-		// decide on whether we have single or multi input and output
 		// sequentially compute stages
-		if sp == input.SpMerge {
+		if sp == input.SpSave {
+			handleSave(ctx, i, outTr, outCp, config)
+		} else if sp == input.SpPlot {
+			handlePlot(ctx, i, outTr, config)
+		} else if sp == input.SpTRsToCPs {
+			outCp = handleTRsToCPs(ctx, i, outTr, config)
+		} else if sp == input.SpMerge {
 			// multi-input, single-output
-			out = []data.TestResults{data.Merge(ctx, out)}
+			outTr = []data.TestResults{data.Merge(ctx, outTr)}
 		} else {
 			// single-input, single-output
 			// hacky solution for passing the analysis function anFunc to this function
-			out = siso(ctx, sp, out, config, anFunc)
+			outTr = siso(ctx, sp, outTr, config, anFunc)
 		}
 		fmt.Printf("# %d - %s: finished stage in %v\n", stageNumber, spUpper, time.Since(stageStart))
 	}
 	fmt.Printf("# Total execution time: %v\n", time.Since(startTime))
+}
 
-	saveOut(out, config.Out)
+func handleSave(ctx context.Context, stageNr int, trs []data.TestResults, cps []data.ChangePoints, config input.Config) {
+	if cps != nil {
+		save.ChangePoints(stageNr, cps, config.Out.ChangePoints)
+	}
+	if trs != nil {
+		save.TestResults(stageNr, trs, config.Out.TestResults)
+	}
+	if trs == nil && cps == nil {
+		// save provided but no results available
+		panic("Sub-program save specified but no output available")
+	}
+}
+
+func handleTRsToCPs(ctx context.Context, stageNr int, trs []data.TestResults, config input.Config) []data.ChangePoints {
+	cps := make([]data.ChangePoints, 0, len(trs))
+	for _, tr := range trs {
+		cp, err := transform.TestResultsToChangePoints(ctx, tr)
+		if err != nil {
+			panic(err)
+		}
+		cps = append(cps, cp)
+	}
+	return cps
+}
+
+func handlePlot(ctx context.Context, stageNr int, trs []data.TestResults, config input.Config) {
+	for _, tr := range trs {
+		save.Plots(ctx, tr, fmt.Sprintf("%s%d", util.AbsolutePath(config.Out.Plot), stageNr))
+	}
 }
 
 func siso(ctx context.Context, sp string, ins []data.TestResults, in input.Config, af data.AnalysisFunc) []data.TestResults {
 	l := len(ins)
 	c := make(chan data.TestResults)
 	done := make(chan struct{})
-	for i, v := range ins {
-		i := i
+	for _, v := range ins {
 		v := v
 		go func() {
 			switch sp {
-			case input.SpPlot:
-				c <- plot.TimeSeries(ctx, v, fmt.Sprintf("%s%d", util.AbsolutePath(in.Plot), i))
 			case input.SpFilter:
 				c <- data.Transform(ctx, v, transFuncsFromIn(in)...)
 			case input.SpAnalyse:
@@ -186,46 +218,6 @@ func transFuncsFromIn(in input.Config) []data.TransFunc {
 	return fs
 }
 
-func saveOut(d []data.TestResults, outPaths []string) {
-	lo := len(outPaths)
-	ld := len(d)
-	if len(outPaths) == 0 {
-		return
-	}
-
-	if lo != ld {
-		// should have been checked by input validators
-		panic(fmt.Sprintf("Number of results (%d) and number of output files (%d) must be the same", ld, lo))
-	}
-
-	for i, r := range d {
-		outPath := util.AbsolutePath(outPaths[i])
-		f, err := os.Create(outPath)
-		if err != nil {
-			fmt.Printf("ERROR - Could not open output file '%v': %v", outPath, err)
-		} else {
-			defer f.Close()
-			w := csv.NewWriter(f)
-			w.Comma = comma
-			defer w.Flush()
-			w.Write(r.Heading())
-			w.Flush()
-			for _, n := range r.TestNames() {
-				rs, ok := r.Get(n)
-				if !ok {
-					// should not be the case
-					fmt.Printf("ERROR - Could not retrieve test with name '%s'", n)
-					continue
-				}
-				for _, r := range rs.ExecutionResults {
-					w.Write(r.AsStringArray())
-				}
-				w.Flush()
-			}
-		}
-	}
-}
-
 func parseArguments() (input.SubPrograms, input.Config) {
 	i := flag.String("c", "", "config file")
 	flag.Parse()
@@ -258,7 +250,8 @@ func parseArguments() (input.SubPrograms, input.Config) {
 			s == input.SpFilter ||
 			s == input.SpMerge ||
 			s == input.SpPlot ||
-			s == input.SpTRsToCPs
+			s == input.SpTRsToCPs ||
+			s == input.SpSave
 		if allowed {
 			_, ok := sp.Occurrences[s]
 			if ok {
