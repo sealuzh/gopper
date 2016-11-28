@@ -14,8 +14,8 @@ import (
 	"bitbucket.org/sealuzh/gopper/data"
 	"bitbucket.org/sealuzh/gopper/data/input"
 	"bitbucket.org/sealuzh/gopper/save"
-	"bitbucket.org/sealuzh/gopper/transform"
 	"bitbucket.org/sealuzh/gopper/transform/filter"
+	"bitbucket.org/sealuzh/gopper/transform/testresults"
 	"bitbucket.org/sealuzh/gopper/util"
 	"bitbucket.org/sealuzh/gopper/validate"
 )
@@ -93,7 +93,7 @@ func handleSave(ctx context.Context, stageNr int, trs []data.TestResults, cps []
 func handleTRsToCPs(ctx context.Context, stageNr int, trs []data.TestResults, config input.Config) []data.ChangePoints {
 	cps := make([]data.ChangePoints, 0, len(trs))
 	for _, tr := range trs {
-		cp, err := transform.TestResultsToChangePoints(ctx, tr)
+		cp, err := testresults.ToChangePoints(ctx, tr)
 		if err != nil {
 			panic(err)
 		}

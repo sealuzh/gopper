@@ -260,5 +260,4 @@ func (c *cp) Copy() ChangePoint {
 		Tns: tns,
 		ers: ers,
 	}
-
 }

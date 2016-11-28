@@ -1,4 +1,4 @@
-package transform
+package testresults
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"bitbucket.org/sealuzh/gopper/data"
 )
 
-func TestResultsToChangePoints(ctx context.Context, trs data.TestResults) (data.ChangePoints, error) {
+func ToChangePoints(ctx context.Context, trs data.TestResults) (data.ChangePoints, error) {
 	if trs == nil {
 		return nil, fmt.Errorf("Parameter trs is nil")
 	}
