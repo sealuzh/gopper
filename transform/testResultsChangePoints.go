@@ -14,26 +14,10 @@ func TestResultsToChangePoints(ctx context.Context, trs data.TestResults) (data.
 
 	cps := data.NewChangePoints()
 	for tr := range trs.All() {
-		for _, er := range tr.ExecutionResults {
-			cp, ok := cps.Get(er.SHA)
-			if ok {
-				// change point for commit already exists -> add this execution result to the change point
-				err := cp.Add(er)
-				if err != nil {
-					return nil, err
-				}
-			} else {
-				// change point for commit does not exist yet -> create the change point
-				cp, err := data.NewChangePoint(er)
-				if err != nil {
-					return nil, err
-				}
-				err = cps.Add(cp)
-				if err != nil {
-					return nil, err
-				}
-			}
+		for _, c := range tr.ChangePoints.All() {
+			cps.Add(c)
 		}
 	}
+	fmt.Printf("   %d change points in %d tests\n", cps.Len(), trs.Len())
 	return cps, nil
 }

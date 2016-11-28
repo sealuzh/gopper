@@ -2,6 +2,7 @@ package data
 
 import (
 	"fmt"
+	"sort"
 	"sync"
 )
 
@@ -11,6 +12,7 @@ const (
 
 // ChangePoints
 type ChangePoints interface {
+	sort.Interface
 	All() []ChangePoint
 	Get(commit string) (ChangePoint, bool)
 	Copy() ChangePoints
@@ -20,21 +22,29 @@ type ChangePoints interface {
 func NewChangePoints() ChangePoints {
 	return &cps{
 		cps:     make(map[string]ChangePoint),
-		commits: make([]ChangePoint, 0, cpsCap),
+		Commits: make([]ChangePoint, 0, cpsCap),
 	}
 }
 
 type cps struct {
 	l       sync.RWMutex
 	cps     map[string]ChangePoint
-	commits []ChangePoint
+	Commits []ChangePoint
+}
+
+func (c *cps) checkPostConditions() {
+	lc := len(c.Commits)
+	lcps := len(c.cps)
+	if lc != lcps {
+		panic(fmt.Sprintf("commits and cps are not of same size: %d != %d", lc, lcps))
+	}
 }
 
 func (c *cps) All() []ChangePoint {
 	c.l.RLock()
 	defer c.l.RUnlock()
-	cps := make([]ChangePoint, len(c.commits))
-	copy(cps, c.commits)
+	cps := make([]ChangePoint, len(c.Commits))
+	copy(cps, c.Commits)
 	return cps
 }
 
@@ -61,31 +71,71 @@ func (c *cps) Add(cp ChangePoint) error {
 		c.cps[cpc] = mergedCp
 
 		// replace change point in commits with new merged change point
-		for i, oldCp := range c.commits {
+		for i, oldCp := range c.Commits {
 			if oldCp.Commit() == cpc {
-				c.commits[i] = mergedCp
+				c.Commits[i] = mergedCp
 				break
 			}
 		}
 	} else {
 		c.cps[cpc] = cp
-		c.commits = append(c.commits, cp)
+		c.Commits = append(c.Commits, cp)
 	}
+	c.checkPostConditions()
 	return nil
 }
 
 func (c *cps) Copy() ChangePoints {
-	cs := make([]ChangePoint, len(c.commits))
+	c.l.RLock()
+	defer c.l.RUnlock()
+	cs := make([]ChangePoint, len(c.Commits))
 	m := make(map[string]ChangePoint)
-	for _, cp := range c.commits {
+	for i, cp := range c.Commits {
 		copy := cp.Copy()
-		cs = append(cs, copy)
+		cs[i] = copy
 		m[copy.Commit()] = copy
 	}
-	return &cps{
-		commits: cs,
+	copy := &cps{
+		Commits: cs,
 		cps:     m,
 	}
+
+	// check if it is a copy
+	func() {
+		loc := len(c.Commits)
+		locps := len(c.cps)
+		lold := loc + locps
+		lnc := len(copy.Commits)
+		lncps := len(copy.cps)
+		lnew := lnc + lncps
+		if lold != lnew {
+			panic(fmt.Sprintf("copy not correct:\nold commits=%d; old cps:%d\nnew commits=%d; new cps=%d", loc, locps, lnc, lncps))
+		}
+	}()
+
+	return copy
+}
+
+func (c *cps) Len() int {
+	c.l.RLock()
+	defer c.l.RUnlock()
+	return len(c.Commits)
+}
+
+func (c *cps) Less(i, j int) bool {
+	c.l.RLock()
+	defer c.l.RUnlock()
+	cpi := c.Commits[i]
+	cpj := c.Commits[j]
+	return len(cpi.TestNames()) < len(cpj.TestNames())
+}
+
+func (c *cps) Swap(i, j int) {
+	c.l.Lock()
+	defer c.l.Unlock()
+	buf := c.Commits[i]
+	c.Commits[i] = c.Commits[j]
+	c.Commits[j] = buf
 }
 
 // ChangePoint
@@ -103,8 +153,8 @@ func NewChangePoint(er *ExecutionResult) (ChangePoint, error) {
 		return nil, fmt.Errorf("Parameter es is nil")
 	}
 	return &cp{
-		commit:    er.SHA,
-		testNames: []string{er.Test},
+		C:   er.SHA,
+		Tns: []string{er.Test},
 		ers: map[string]*ExecutionResult{
 			er.Test: er,
 		},
@@ -112,22 +162,22 @@ func NewChangePoint(er *ExecutionResult) (ChangePoint, error) {
 }
 
 type cp struct {
-	commit    string
-	testNames []string
-	ers       map[string]*ExecutionResult
-	l         sync.RWMutex
+	C   string
+	Tns []string
+	ers map[string]*ExecutionResult
+	l   sync.RWMutex
 }
 
 func (c *cp) TestNames() []string {
 	c.l.RLock()
 	defer c.l.RUnlock()
-	return c.testNames
+	return c.Tns
 }
 
 func (c *cp) Commit() string {
 	c.l.RLock()
 	defer c.l.RUnlock()
-	return c.commit
+	return c.C
 }
 
 func (c *cp) Add(er *ExecutionResult) error {
@@ -136,10 +186,10 @@ func (c *cp) Add(er *ExecutionResult) error {
 	}
 	c.l.Lock()
 	defer c.l.Unlock()
-	if c.commit != er.SHA {
-		return fmt.Errorf("Invalid commit '%s'. This ChangePoint deals with commit '%s'", er.SHA, c.commit)
+	if c.C != er.SHA {
+		return fmt.Errorf("Invalid commit '%s'. This ChangePoint deals with commit '%s'", er.SHA, c.C)
 	}
-	c.testNames = append(c.testNames, er.Test)
+	c.Tns = append(c.Tns, er.Test)
 	c.ers[er.Test] = er
 	return nil
 }
@@ -158,13 +208,13 @@ func (c *cp) Merge(other ChangePoint) (ChangePoint, error) {
 	c.l.RLock()
 	defer c.l.RUnlock()
 	oc := other.Commit()
-	if c.commit != oc {
-		return nil, fmt.Errorf("Commits not equal: '%s' != '%s'", c.commit, oc)
+	if c.C != oc {
+		return nil, fmt.Errorf("Commits not equal: '%s' != '%s'", c.C, oc)
 	}
 
 	// overlapping testnames are not taken into account, hence the underlaying array of tn might be larger than
 	otns := other.TestNames()
-	tns := make([]string, 0, len(c.testNames)+len(otns))
+	tns := make([]string, 0, len(c.Tns)+len(otns))
 	m := make(map[string]*ExecutionResult)
 	// add other change points
 	for _, otn := range otns {
@@ -188,9 +238,9 @@ func (c *cp) Merge(other ChangePoint) (ChangePoint, error) {
 	}
 
 	return &cp{
-		commit:    oc,
-		ers:       m,
-		testNames: tns,
+		C:   oc,
+		ers: m,
+		Tns: tns,
 	}, nil
 }
 
@@ -198,17 +248,17 @@ func (c *cp) Copy() ChangePoint {
 	c.l.RLock()
 	defer c.l.RUnlock()
 
-	tns := make([]string, len(c.testNames))
+	tns := make([]string, len(c.Tns))
 	ers := make(map[string]*ExecutionResult)
-	for i, tn := range c.testNames {
+	for i, tn := range c.Tns {
 		tns[i] = tn
 		ers[tn] = c.ers[tn]
 	}
 
 	return &cp{
-		commit:    c.commit,
-		testNames: tns,
-		ers:       ers,
+		C:   c.C,
+		Tns: tns,
+		ers: ers,
 	}
 
 }
