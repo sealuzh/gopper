@@ -18,6 +18,6 @@ func ToChangePoints(ctx context.Context, trs data.TestResults) (data.ChangePoint
 			cps.Add(c)
 		}
 	}
-	fmt.Printf("   %d change points in %d tests\n", cps.Len(), trs.Len())
+	fmt.Printf("  %d change points in %d tests\n", cps.Len(), trs.Len())
 	return cps, nil
 }

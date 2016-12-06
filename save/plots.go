@@ -39,7 +39,7 @@ type pd struct {
 
 func Plots(ctx context.Context, in data.TestResults, plotDir string) {
 	l := in.Len()
-	fmt.Printf("# Plot time series for %d tests\n", l)
+	fmt.Printf("  Plot time series for %d tests\n", l)
 	handleDirectory(plotDir)
 
 	o.Do(func() {
@@ -61,7 +61,7 @@ func Plots(ctx context.Context, in data.TestResults, plotDir string) {
 
 	wg.Wait()
 
-	fmt.Printf("# %d tests plotted\n", l)
+	fmt.Printf("  %d tests plotted\n", l)
 }
 
 func handleDirectory(plotDir string) {
@@ -100,7 +100,7 @@ func printPlot(c <-chan pd, wg *sync.WaitGroup) {
 
 		title := d.Test
 
-		fmt.Printf("  # Plot for test '%s'\n", title)
+		fmt.Printf("    Plot for test '%s'\n", title)
 
 		plotData, cps, xTicks := plotData(d)
 		dataLength := len(plotData)

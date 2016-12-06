@@ -6,6 +6,7 @@ const (
 	SpMerge           = "merge"
 	SpAnalyse         = "analyse"
 	SpTRsToCPs        = "toChangePoints"
+	SpRmDupTns        = "rmDuplicates"
 	SpSave            = "save"
 	FilterMinMean     = "minMean"
 	FilterMinVersions = "minVersions"
@@ -14,6 +15,6 @@ const (
 	AnalyseTwitter    = "twitter"
 )
 
-var SubProgs = [...]string{SpPlot, SpFilter, SpMerge, SpAnalyse, SpTRsToCPs, SpSave}
+var SubProgs = [...]string{SpPlot, SpFilter, SpMerge, SpAnalyse, SpTRsToCPs, SpSave, SpRmDupTns}
 var TransFuncs = [...]string{FilterMinMean, FilterMinMedian, FilterMinVersions}
 var AnalyseFuncs = [...]string{AnalyseBcp, AnalyseTwitter}

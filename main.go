@@ -14,6 +14,7 @@ import (
 	"bitbucket.org/sealuzh/gopper/data"
 	"bitbucket.org/sealuzh/gopper/data/input"
 	"bitbucket.org/sealuzh/gopper/save"
+	"bitbucket.org/sealuzh/gopper/transform/changepoints"
 	"bitbucket.org/sealuzh/gopper/transform/filter"
 	"bitbucket.org/sealuzh/gopper/transform/testresults"
 	"bitbucket.org/sealuzh/gopper/util"
@@ -67,6 +68,8 @@ func main() {
 		} else if sp == input.SpMerge {
 			// multi-input, single-output
 			outTr = []data.TestResults{data.Merge(ctx, outTr)}
+		} else if sp == input.SpRmDupTns {
+			outCp = handleRmDupTns(ctx, i, outCp)
 		} else {
 			// single-input, single-output
 			// hacky solution for passing the analysis function anFunc to this function
@@ -88,6 +91,14 @@ func handleSave(ctx context.Context, stageNr int, trs []data.TestResults, cps []
 		// save provided but no results available
 		panic("Sub-program save specified but no output available")
 	}
+}
+
+func handleRmDupTns(ctx context.Context, stageNr int, cps []data.ChangePoints) []data.ChangePoints {
+	cps, err := changepoints.RemoveDuplicateTestNames(ctx, cps)
+	if err != nil {
+		panic(err)
+	}
+	return cps
 }
 
 func handleTRsToCPs(ctx context.Context, stageNr int, trs []data.TestResults, config input.Config) []data.ChangePoints {
@@ -251,7 +262,8 @@ func parseArguments() (input.SubPrograms, input.Config) {
 			s == input.SpMerge ||
 			s == input.SpPlot ||
 			s == input.SpTRsToCPs ||
-			s == input.SpSave
+			s == input.SpSave ||
+			s == input.SpRmDupTns
 		if allowed {
 			_, ok := sp.Occurrences[s]
 			if ok {
