@@ -7,7 +7,7 @@ import (
 	"bitbucket.org/sealuzh/gopper/data"
 )
 
-func MinMedianRuntime(r float32) data.TransFunc {
+func MinMedianRuntime(r float64) data.TransFunc {
 	return func(ctx context.Context, in <-chan *data.TestResult) <-chan *data.TestResult {
 		out := make(chan *data.TestResult)
 		go func() {
@@ -33,7 +33,7 @@ func MinMedianRuntime(r float32) data.TransFunc {
 				return
 			}
 
-			var median float32
+			var median float64
 			if l == 1 {
 				median = copy.ExecutionResults[0].RawVal
 			} else if l%2 != 0 {

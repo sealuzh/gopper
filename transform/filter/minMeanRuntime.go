@@ -6,7 +6,7 @@ import (
 	"bitbucket.org/sealuzh/gopper/data"
 )
 
-func MinMeanRuntime(r float32) data.TransFunc {
+func MinMeanRuntime(r float64) data.TransFunc {
 	return func(ctx context.Context, in <-chan *data.TestResult) <-chan *data.TestResult {
 		out := make(chan *data.TestResult)
 		go func() {
@@ -30,11 +30,11 @@ func MinMeanRuntime(r float32) data.TransFunc {
 			}
 
 			execResults := tests.ExecutionResults
-			var avgRt float32 = 0.0
+			var avgRt float64 = 0.0
 			for _, r := range execResults {
 				avgRt += r.RawVal
 			}
-			avgRt = avgRt / float32(l)
+			avgRt = avgRt / float64(l)
 			if avgRt < r {
 				out <- nil
 				// fmt.Printf("MinMeanRuntime: below avg runtime '%s': %v\n", tests.Test, avgRt)

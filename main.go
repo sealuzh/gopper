@@ -207,13 +207,13 @@ func transFuncsFromIn(in input.Config) []data.TransFunc {
 	for _, f := range in.Transform {
 		switch f.Name {
 		case input.FilterMinMean:
-			v, err := input.Float32Param(f, 0)
+			v, err := input.Float64Param(f, 0)
 			if err != nil {
 				panic(err)
 			}
 			fs = append(fs, filter.MinMeanRuntime(v))
 		case input.FilterMinMedian:
-			v, err := input.Float32Param(f, 0)
+			v, err := input.Float64Param(f, 0)
 			if err != nil {
 				panic(err)
 			}
