@@ -36,5 +36,6 @@ func Transform(ctx context.Context, in TestResults, transformers ...TransFunc) T
 			break
 		}
 	}
+	fmt.Printf("  %d/%d not filtered\n", ret.Len(), in.Len())
 	return ret
 }

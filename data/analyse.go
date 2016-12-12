@@ -70,7 +70,10 @@ Loop:
 			if err != nil {
 				if err != context.Canceled {
 					fmt.Printf("ERROR - analysis function returned with an error for '%s': %v\n", r.Test, err)
-					return
+					tr = nil
+					c = res
+					i = nil
+					break
 				}
 			}
 			r.ChangePoints = cps

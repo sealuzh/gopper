@@ -30,7 +30,7 @@ func MinMeanRuntime(r float64) data.TransFunc {
 			}
 
 			execResults := tests.ExecutionResults
-			var avgRt float64 = 0.0
+			var avgRt float64
 			for _, r := range execResults {
 				avgRt += r.RawVal
 			}
