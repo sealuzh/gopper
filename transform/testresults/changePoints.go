@@ -14,7 +14,7 @@ func ToChangePoints(ctx context.Context, trs data.TestResults) (data.ChangePoint
 
 	cps := data.NewChangePoints()
 	for tr := range trs.All() {
-		for _, c := range tr.ChangePoints.All() {
+		for _, c := range tr.ChangePoints().All() {
 			cps.Add(c)
 		}
 	}

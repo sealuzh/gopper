@@ -9,18 +9,20 @@ import (
 	"sync"
 )
 
-const minCapacity = 50
-const sep = ';'
-const comment = '#'
+const (
+	minCapacity = 50
+	sep         = ';'
+	comment     = '#'
+)
 
 // Results
 type TestResults interface {
 	Add(r *ExecutionResult) error
-	AddTest(t *TestResult) error
+	AddTest(t TestResult) error
 	Remove(test string) error
-	Get(test string) (testResults *TestResult, ok bool)
+	Get(test string) (testResults TestResult, ok bool)
 	TestNames() []string
-	All() <-chan *TestResult
+	All() <-chan TestResult
 	Len() int
 	Heading() []string
 	HeadingString() string
@@ -32,7 +34,7 @@ func NewTestResults() TestResults {
 
 func NewTestResultsWithHeading(heading []string) TestResults {
 	return &testResultsMap{
-		m:       make(map[string]*TestResult),
+		m:       make(map[string]TestResult),
 		names:   make([]string, 0, minCapacity),
 		heading: heading,
 	}
@@ -81,7 +83,7 @@ func TestResultsFromFile(path string) (data TestResults, err error) {
 
 type testResultsMap struct {
 	lock    sync.RWMutex
-	m       map[string]*TestResult
+	m       map[string]TestResult
 	names   []string
 	heading []string
 }
@@ -110,22 +112,17 @@ func (rm *testResultsMap) Add(r *ExecutionResult) error {
 	rm.lock.Lock()
 	defer rm.lock.Unlock()
 	res, ok := rm.m[r.Test]
-	if ok {
-		res.ExecutionResults = append(res.ExecutionResults, r)
-	} else {
-		rm.m[r.Test] = &TestResult{
-			ExecutionResults: append(make([]*ExecutionResult, 0, minCapacity), r),
-			Project:          r.Project,
-			Test:             r.Test,
-			ChangePoints:     NewChangePoints(),
-		}
+	if !ok {
+		res = NewTestResult(r.Project, r.Test)
+		rm.m[r.Test] = res
 		rm.names = append(rm.names, r.Test)
 	}
+	res.AddExecutionResult(r)
 
 	return nil
 }
 
-func (rm *testResultsMap) AddTest(t *TestResult) error {
+func (rm *testResultsMap) AddTest(t TestResult) error {
 	if t == nil {
 		return fmt.Errorf("Test to add is nil")
 	}
@@ -133,12 +130,21 @@ func (rm *testResultsMap) AddTest(t *TestResult) error {
 	rm.lock.Lock()
 	defer rm.lock.Unlock()
 
-	res, ok := rm.m[t.Test]
+	testName := t.Test()
+	res, ok := rm.m[testName]
 	if ok {
-		res.ExecutionResults = append(res.ExecutionResults, t.ExecutionResults...)
+		for _, c := range t.Commits() {
+			ers, ok := t.ExecutionResult(c)
+			if !ok {
+				panic(fmt.Sprintf("testResultsMap::AddTest - TestResult has invalid state"))
+			}
+			for _, er := range ers {
+				res.AddExecutionResult(er)
+			}
+		}
 	} else {
-		rm.m[t.Test] = t
-		rm.names = append(rm.names, t.Test)
+		rm.m[testName] = t
+		rm.names = append(rm.names, testName)
 	}
 
 	return nil
@@ -178,7 +184,7 @@ func (rm *testResultsMap) Remove(test string) error {
 	return nil
 }
 
-func (rm *testResultsMap) Get(test string) (*TestResult, bool) {
+func (rm *testResultsMap) Get(test string) (TestResult, bool) {
 	rm.lock.RLock()
 	e, ok := rm.m[test]
 	rm.lock.RUnlock()
@@ -194,9 +200,9 @@ func (rm *testResultsMap) Len() int {
 	return len(rm.m)
 }
 
-func (rm *testResultsMap) All() <-chan *TestResult {
+func (rm *testResultsMap) All() <-chan TestResult {
 	rm.lock.RLock()
-	c := make(chan *TestResult, len(rm.names))
+	c := make(chan TestResult, len(rm.names))
 	go func() {
 		for _, tn := range rm.names {
 			tr, ok := rm.m[tn]

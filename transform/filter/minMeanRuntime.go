@@ -2,13 +2,15 @@ package filter
 
 import (
 	"context"
+	"fmt"
 
 	"bitbucket.org/sealuzh/gopper/data"
+	"github.com/montanaflynn/stats"
 )
 
 func MinMeanRuntime(r float64) data.TransFunc {
-	return func(ctx context.Context, in <-chan *data.TestResult) <-chan *data.TestResult {
-		out := make(chan *data.TestResult)
+	return func(ctx context.Context, in <-chan data.TestResult) <-chan data.TestResult {
+		out := make(chan data.TestResult)
 		go func() {
 			defer close(out)
 			tests, ok := <-in
@@ -21,20 +23,22 @@ func MinMeanRuntime(r float64) data.TransFunc {
 				return
 			}
 
-			l := tests.Len()
-
-			if l == 0 {
-				out <- nil
-				// fmt.Printf("MinMeanRuntime: length is 0\n")
-				return
-			}
-
-			execResults := tests.ExecutionResults
 			var avgRt float64
-			for _, r := range execResults {
-				avgRt += r.RawVal
+			counter := 0
+			for _, c := range tests.Commits() {
+				ers, ok := tests.ExecutionResult(c)
+				if !ok {
+					panic(fmt.Sprintf("Inconsistent test result: %s", c))
+				}
+				m, err := stats.Mean(stats.Float64Data(data.ExecutionResultsToValues(ers)))
+				if err != nil {
+					panic(err)
+				}
+				avgRt += m
+				counter++
 			}
-			avgRt = avgRt / float64(l)
+			avgRt = avgRt / float64(counter)
+
 			if avgRt < r {
 				out <- nil
 				// fmt.Printf("MinMeanRuntime: below avg runtime '%s': %v\n", tests.Test, avgRt)

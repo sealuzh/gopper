@@ -24,6 +24,14 @@ func newExecutionResult(record []string) *ExecutionResult {
 	}
 }
 
+func ExecutionResultsToValues(ers []*ExecutionResult) []float64 {
+	ret := make([]float64, len(ers))
+	for i, er := range ers {
+		ret[i] = er.RawVal
+	}
+	return ret
+}
+
 type ExecutionResult struct {
 	Project       string
 	Version       string

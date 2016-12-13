@@ -10,11 +10,11 @@ const (
 	maxWorkers = 10
 )
 
-type AnalysisFunc func(context.Context, *TestResult) (ChangePoints, error)
+type AnalysisFunc func(context.Context, TestResult) (ChangePoints, error)
 
 func Analyse(ctx context.Context, in TestResults, f AnalysisFunc) TestResults {
-	res := make(chan *TestResult)
-	out := make(chan *TestResult)
+	res := make(chan TestResult)
+	out := make(chan TestResult)
 	var wg sync.WaitGroup
 
 	tns := in.TestNames()
@@ -53,10 +53,10 @@ func Analyse(ctx context.Context, in TestResults, f AnalysisFunc) TestResults {
 	return ret
 }
 
-func runAnalysis(ctx context.Context, f AnalysisFunc, in <-chan *TestResult, res chan<- *TestResult) {
+func runAnalysis(ctx context.Context, f AnalysisFunc, in <-chan TestResult, res chan<- TestResult) {
 	i := in
-	var c chan<- *TestResult
-	var tr *TestResult
+	var c chan<- TestResult
+	var tr TestResult
 
 Loop:
 	for {
@@ -76,7 +76,10 @@ Loop:
 					break
 				}
 			}
-			r.ChangePoints = cps
+			for _, cp := range cps.All() {
+				r.AddChangePoint(cp)
+			}
+
 			c = res
 			i = nil
 			tr = r

@@ -142,21 +142,28 @@ func (c *cps) Swap(i, j int) {
 type ChangePoint interface {
 	TestNames() []string
 	Commit() string
-	Add(er *ExecutionResult) error
-	Get(testName string) (*ExecutionResult, bool)
+	Add(commit string, test TestResult) error
+	Get(testName string) (TestResult, bool)
 	Copy() ChangePoint
 	Merge(other ChangePoint) (ChangePoint, error)
 }
 
-func NewChangePoint(er *ExecutionResult) (ChangePoint, error) {
-	if er == nil {
-		return nil, fmt.Errorf("Parameter es is nil")
+func NewChangePoint(commit string, test TestResult) (ChangePoint, error) {
+	if test == nil {
+		return nil, fmt.Errorf("Parameter test is nil")
 	}
+
+	_, ok := test.ExecutionResult(commit)
+	testName := test.Test()
+	if !ok {
+		return nil, fmt.Errorf("Commit '%s' is not contained in TestResult for test '%s'", commit, test.Test())
+	}
+
 	return &cp{
-		C:   er.SHA,
-		Tns: []string{er.Test},
-		ers: map[string]*ExecutionResult{
-			er.Test: er,
+		C:   commit,
+		Tns: []string{testName},
+		ers: map[string]TestResult{
+			testName: test,
 		},
 	}, nil
 }
@@ -164,7 +171,7 @@ func NewChangePoint(er *ExecutionResult) (ChangePoint, error) {
 type cp struct {
 	C   string
 	Tns []string
-	ers map[string]*ExecutionResult
+	ers map[string]TestResult
 	l   sync.RWMutex
 }
 
@@ -180,21 +187,22 @@ func (c *cp) Commit() string {
 	return c.C
 }
 
-func (c *cp) Add(er *ExecutionResult) error {
-	if er == nil {
-		return fmt.Errorf("Parameter is nil")
+func (c *cp) Add(commit string, test TestResult) error {
+	if test == nil {
+		return fmt.Errorf("Parameter test nil")
 	}
 	c.l.Lock()
 	defer c.l.Unlock()
-	if c.C != er.SHA {
-		return fmt.Errorf("Invalid commit '%s'. This ChangePoint deals with commit '%s'", er.SHA, c.C)
+	if c.C != commit {
+		return fmt.Errorf("Invalid commit '%s'. This ChangePoint deals with commit '%s'", commit, c.C)
 	}
-	c.Tns = append(c.Tns, er.Test)
-	c.ers[er.Test] = er
+	testName := test.Test()
+	c.Tns = append(c.Tns, testName)
+	c.ers[testName] = test
 	return nil
 }
 
-func (c *cp) Get(testName string) (*ExecutionResult, bool) {
+func (c *cp) Get(testName string) (TestResult, bool) {
 	c.l.RLock()
 	defer c.l.RUnlock()
 	er, ok := c.ers[testName]
@@ -215,7 +223,7 @@ func (c *cp) Merge(other ChangePoint) (ChangePoint, error) {
 	// overlapping testnames are not taken into account, hence the underlaying array of tn might be larger than
 	otns := other.TestNames()
 	tns := make([]string, 0, len(c.Tns)+len(otns))
-	m := make(map[string]*ExecutionResult)
+	m := make(map[string]TestResult)
 	// add other change points
 	for _, otn := range otns {
 		er, ok := other.Get(otn)
@@ -249,7 +257,7 @@ func (c *cp) Copy() ChangePoint {
 	defer c.l.RUnlock()
 
 	tns := make([]string, len(c.Tns))
-	ers := make(map[string]*ExecutionResult)
+	ers := make(map[string]TestResult)
 	for i, tn := range c.Tns {
 		tns[i] = tn
 		ers[tn] = c.ers[tn]

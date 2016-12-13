@@ -16,7 +16,7 @@ func Bcp(script string, probability float64) (data.AnalysisFunc, error) {
 		return nil, err
 	}
 	f := string(b)
-	return func(ctx context.Context, tr *data.TestResult) (data.ChangePoints, error) {
+	return func(ctx context.Context, tr data.TestResult) (data.ChangePoints, error) {
 		if tr == nil {
 			return nil, fmt.Errorf("Bcp function: parameter tr is nil")
 		}
@@ -34,8 +34,9 @@ func Bcp(script string, probability float64) (data.AnalysisFunc, error) {
 			return nil, fmt.Errorf("Bsp function: r script returned wrong result type '%v'", reflect.TypeOf(r))
 		}
 
+		commits := tr.Commits()
 		lcps := len(cps)
-		ler := len(tr.ExecutionResults)
+		ler := len(commits)
 		if lcps != ler {
 			return nil, fmt.Errorf("Bcp functions: returned change points (%d) not equal to execution results (%d)", lcps, ler)
 		}
@@ -44,7 +45,8 @@ func Bcp(script string, probability float64) (data.AnalysisFunc, error) {
 		cpCount := 0
 		for i, cp := range cps {
 			if cp >= probability {
-				ncp, err := data.NewChangePoint(tr.ExecutionResults[i])
+				commit := tr.Commits()[i]
+				ncp, err := data.NewChangePoint(commit, tr)
 				if err != nil {
 					return nil, err
 				}
@@ -55,7 +57,7 @@ func Bcp(script string, probability float64) (data.AnalysisFunc, error) {
 				cpCount++
 			}
 		}
-		fmt.Printf("  %d change points in %s\n", cpCount, tr.Test)
+		fmt.Printf("  %d change points in %s\n", cpCount, tr.Test())
 		return ret, nil
 	}, nil
 }

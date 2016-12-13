@@ -40,7 +40,7 @@ func (rm *rManager) client() roger.RClient {
 	return rm.c
 }
 
-func (rm *rManager) evaluate(tr *data.TestResult, stmt string, params ...rParam) (interface{}, error) {
+func (rm *rManager) evaluate(tr data.TestResult, stmt string, params ...rParam) (interface{}, error) {
 	rc := rm.client()
 	s, err := rc.GetSession()
 	if err != nil {
@@ -48,7 +48,7 @@ func (rm *rManager) evaluate(tr *data.TestResult, stmt string, params ...rParam)
 	}
 	defer s.Close()
 
-	d := vectorise(tr)
+	d := vectoriseFirstElement(tr)
 	err = s.Assign(rvarTestData, d)
 	if err != nil {
 		return nil, fmt.Errorf("RManager - could not assign test data: %v", err)

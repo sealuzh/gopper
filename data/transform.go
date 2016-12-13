@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-type TransFunc func(context.Context, <-chan *TestResult) <-chan *TestResult
+type TransFunc func(context.Context, <-chan TestResult) <-chan TestResult
 
 func Transform(ctx context.Context, in TestResults, transformers ...TransFunc) TestResults {
 	ret := NewTestResults()
@@ -15,8 +15,8 @@ func Transform(ctx context.Context, in TestResults, transformers ...TransFunc) T
 			panic(fmt.Sprintf("No element in results with name '%s'", r))
 		}
 
-		ch := make(chan *TestResult)
-		var c <-chan *TestResult = ch
+		ch := make(chan TestResult)
+		var c <-chan TestResult = ch
 		for _, transformer := range transformers {
 			c = transformer(ctx, c)
 		}
@@ -27,9 +27,7 @@ func Transform(ctx context.Context, in TestResults, transformers ...TransFunc) T
 			// fmt.Printf("%d filtered results\n", len(results.ExecutionResults))
 			if ok {
 				if results != nil {
-					for _, res := range results.ExecutionResults {
-						ret.Add(res)
-					}
+					ret.AddTest(results)
 				}
 			}
 		case <-ctx.Done():

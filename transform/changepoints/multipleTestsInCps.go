@@ -15,15 +15,21 @@ func RemoveDuplicateTestNames(ctx context.Context, cps []data.ChangePoints) ([]d
 		startLen := cp.Len()
 		newCp := data.NewChangePoints()
 		for _, c := range cps {
+			commit := c.Commit()
 			for _, tn := range c.TestNames() {
-				er, ok := c.Get(tn)
+				t, ok := c.Get(tn)
 				if !ok {
-					panic(fmt.Sprintf("Inconsistent change point. commit=%s; test=%s", c.Commit(), tn))
+					panic(fmt.Sprintf("Inconsistent change point. commit=%s; test=%s", commit, tn))
 				}
 
-				key := tn + er.SHA
+				_, ok = t.ExecutionResult(commit)
+				if !ok {
+					panic(fmt.Sprintf("Inconsistent test result. commit=%s; test=%s", commit, tn))
+				}
+
+				key := tn + commit
 				if _, ok := tns[key]; !ok {
-					newC, err := data.NewChangePoint(er)
+					newC, err := data.NewChangePoint(commit, t)
 					if err != nil {
 						return nil, err
 					}

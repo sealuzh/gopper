@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"bitbucket.org/sealuzh/gopper/data"
 	pl "github.com/gonum/plot"
@@ -26,29 +25,23 @@ const (
 )
 
 var multipleTestNames = 0
-var o sync.Once
-var ch chan pd
-
-// does not support multiple stages
-var wg sync.WaitGroup
 
 type pd struct {
 	plotDir string
-	data    *data.TestResult
+	data    data.TestResult
 }
 
 func Plots(ctx context.Context, in data.TestResults, plotDir string) {
+	//TODO: support multiple stages, e.g. return parameterless function
 	l := in.Len()
 	fmt.Printf("  Plot time series for %d tests\n", l)
 	handleDirectory(plotDir)
 
-	o.Do(func() {
-		ch = make(chan pd)
-		go printPlot(ch, &wg)
-	})
+	ch := make(chan pd)
+	done := make(chan int)
+	go printPlot(ch, done)
 
 	for _, name := range in.TestNames() {
-		wg.Add(1)
 		td, ok := in.Get(name)
 		if !ok {
 			panic(fmt.Sprintf("ERROR - Could not retrieve test '%s' from results", name))
@@ -58,10 +51,10 @@ func Plots(ctx context.Context, in data.TestResults, plotDir string) {
 			data:    td,
 		}
 	}
+	close(ch)
+	printed := <-done
 
-	wg.Wait()
-
-	fmt.Printf("  %d tests plotted\n", l)
+	fmt.Printf("  %d tests plotted\n", printed)
 }
 
 func handleDirectory(plotDir string) {
@@ -88,67 +81,116 @@ func handleDirectory(plotDir string) {
 	}
 }
 
-func printPlot(c <-chan pd, wg *sync.WaitGroup) {
+func printPlot(c <-chan pd, done chan<- int) {
+	counter := 0
 	for pd := range c {
-		p, err := pl.New()
-		if err != nil {
-			panic("ERROR - Could not create new plot")
-		}
+		func() {
+			p, err := pl.New()
+			if err != nil {
+				panic("ERROR - Could not create new plot")
+			}
 
-		d := pd.data
-		plotDir := pd.plotDir
+			d := pd.data
+			plotDir := pd.plotDir
 
-		title := d.Test
+			title := d.Test()
 
-		fmt.Printf("    Plot for test '%s'\n", title)
+			fmt.Printf("    Plot for test '%s'\n", title)
 
-		plotData, cps, xTicks := plotData(d)
-		dataLength := len(plotData)
-		if dataLength < minPlotData {
-			fmt.Printf("    DEBUG - Not enough plot data available: %d\n", dataLength)
-			return
-		}
+			//plotData, cps, xTicks := plotData(d)
+			plotData, cps, xTicks := boxPlots(d)
+			dataLength := len(plotData)
+			if dataLength < minPlotData {
+				fmt.Printf("    DEBUG - Not enough plot data available: %d\n", dataLength)
+				return
+			}
 
-		p.Title.Text = title
-		p.X.Label.Text = xLabel
-		p.X.Tick.Marker = xTicks
-		p.X.Tick.Label.Rotation = math.Pi / 2
-		p.X.Tick.Label.XAlign = draw.XRight
-		p.X.Tick.Label.YAlign = draw.YCenter
-		p.Y.Label.Text = yLabel
+			p.Title.Text = title
+			p.X.Label.Text = xLabel
+			p.X.Tick.Marker = xTicks
+			p.X.Tick.Label.Rotation = math.Pi / 2
+			p.X.Tick.Label.XAlign = draw.XRight
+			p.X.Tick.Label.YAlign = draw.YCenter
+			p.Y.Label.Text = yLabel
 
-		// display data
-		points, err := plotter.NewScatter(plotData)
-		points.Shape = draw.CircleGlyph{}
-		points.Color = color.RGBA{R: 0, G: 255, B: 255}
-		points.Radius = 2
-		p.Add(points)
+			// display boxPlots
+			p.Add(plotData...)
+			p.Add(cps...)
 
-		// cps
-		cpPoints, err := plotter.NewScatter(cps)
-		cpPoints.Shape = draw.CircleGlyph{}
-		cpPoints.Color = color.RGBA{R: 255, G: 255, B: 0}
-		cpPoints.Radius = 2
-		p.Add(cpPoints)
+			/*// display data
+			points, err := plotter.NewScatter(plotData)
+			points.Shape = draw.CircleGlyph{}
+			points.Color = color.RGBA{R: 0, G: 255, B: 255}
+			points.Radius = 2
+			p.Add(points)
 
-		// filename
-		i := strings.Index(title, "[")
-		fileName := title
-		if i != -1 {
-			multipleTestNames += 1
-			fileName = fmt.Sprintf("%s%d", fileName[:i], multipleTestNames)
-		}
-		fileName = fmt.Sprintf("%s%s", fileName, extension)
-		fileName = filepath.Join(plotDir, fileName)
-		err = p.Save(30*vg.Centimeter, 20*vg.Centimeter, fileName)
-		if err != nil {
-			fmt.Printf("    ERROR - Could not save plot: %v\n", err)
-		}
-		wg.Done()
+			// cps
+			cpPoints, err := plotter.NewScatter(cps)
+			cpPoints.Shape = draw.CircleGlyph{}
+			cpPoints.Color = color.RGBA{R: 255, G: 255, B: 0}
+			cpPoints.Radius = 2
+			p.Add(cpPoints)
+			*/
+			// filename
+			i := strings.Index(title, "[")
+			fileName := title
+			if i != -1 {
+				multipleTestNames += 1
+				fileName = fmt.Sprintf("%s%d", fileName[:i], multipleTestNames)
+			}
+			fileName = fmt.Sprintf("%s%s", fileName, extension)
+			fileName = filepath.Join(plotDir, fileName)
+			err = p.Save(30*vg.Centimeter, 20*vg.Centimeter, fileName)
+			if err != nil {
+				fmt.Printf("    ERROR - Could not save plot: %v\n", err)
+			}
+			counter++
+		}()
 	}
+	done <- counter
 }
 
-func plotData(testResult *data.TestResult) (plotter.XYs, plotter.XYs, VersionTicker) {
+func boxPlots(testResult data.TestResult) ([]pl.Plotter, []pl.Plotter, VersionTicker) {
+	commits := testResult.Commits()
+	cps := testResult.ChangePoints()
+
+	lc := len(commits)
+	lcps := cps.Len()
+
+	bpsData := make([]pl.Plotter, 0, lc-lcps)
+	bpsCps := make([]pl.Plotter, 0, lcps)
+	ticks := make([]pl.Tick, lc)
+
+	for i, c := range commits {
+		ers, ok := testResult.ExecutionResult(c)
+		if !ok {
+			panic(fmt.Sprintf("Inconsistent test result: %s @ %s", testResult.Test(), c))
+		}
+		b, err := plotter.NewBoxPlot(vg.Points(20), float64(i), plotter.Values(data.ExecutionResultsToValues(ers)))
+		if err != nil {
+			panic(err)
+		}
+
+		_, isCp := cps.Get(c)
+		if isCp {
+			c := color.RGBA{R: 0, G: 255, B: 255}
+			b.MedianStyle.Color = c
+			b.BoxStyle.Color = c
+			b.GlyphStyle.Color = c
+			b.WhiskerStyle.Color = c
+			bpsCps = append(bpsCps, b)
+		} else {
+			bpsData = append(bpsData, b)
+		}
+
+		ticks[i].Label = c
+		ticks[i].Value = float64(i)
+	}
+
+	return bpsData, bpsCps, VersionTicker(ticks)
+}
+
+/*func plotData(testResult data.TestResult) (plotter.XYs, plotter.XYs, VersionTicker) {
 	d := testResult.ExecutionResults
 	l := len(d)
 	lcps := len(testResult.ChangePoints.All())
@@ -173,7 +215,7 @@ func plotData(testResult *data.TestResult) (plotter.XYs, plotter.XYs, VersionTic
 		ticks[i].Value = float64(i)
 	}
 	return data, cps, VersionTicker(ticks)
-}
+}*/
 
 type VersionTicker []pl.Tick
 

@@ -7,8 +7,8 @@ import (
 )
 
 func MinVersions(v int) data.TransFunc {
-	return func(ctx context.Context, in <-chan *data.TestResult) <-chan *data.TestResult {
-		out := make(chan *data.TestResult)
+	return func(ctx context.Context, in <-chan data.TestResult) <-chan data.TestResult {
+		out := make(chan data.TestResult)
 		go func() {
 			defer close(out)
 			tests, ok := <-in
@@ -20,8 +20,8 @@ func MinVersions(v int) data.TransFunc {
 				// fmt.Printf("MinVersion: in is nill\n")
 				return
 			}
-			execResults := tests.ExecutionResults
-			if len(execResults) >= v {
+			commits := tests.Commits()
+			if len(commits) >= v {
 				out <- tests
 			} else {
 				out <- nil
