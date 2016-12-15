@@ -76,3 +76,18 @@ func IntParam(f Func, pos int) (int, error) {
 		return 0, fmt.Errorf("%s parameter is of incompatible type: %v", f.Name, reflect.TypeOf(p))
 	}
 }
+
+func BoolParam(f Func, pos int) (bool, error) {
+	err := checkParams("BoolParam", f, pos)
+	if err != nil {
+		return false, err
+	}
+
+	p := f.Params[pos]
+	switch p := p.(type) {
+	case bool:
+		return p, nil
+	default:
+		return false, fmt.Errorf("%s parameter is of incompatible type: %v", f.Name, reflect.TypeOf(p))
+	}
+}

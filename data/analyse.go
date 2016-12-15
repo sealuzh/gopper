@@ -69,7 +69,7 @@ Loop:
 			cps, err := f(ctx, r)
 			if err != nil {
 				if err != context.Canceled {
-					fmt.Printf("ERROR - analysis function returned with an error for '%s': %v\n", r.Test, err)
+					fmt.Printf("ERROR - analysis function returned with an error for '%s': %v\n", r.Test(), err)
 					tr = nil
 					c = res
 					i = nil

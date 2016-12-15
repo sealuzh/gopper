@@ -48,8 +48,6 @@ func main() {
 		ins[i] = r
 	}
 
-	anFunc := analysisFuncFromIn(config)
-
 	// execute sub-programs
 	outTr = ins
 	startTime := time.Now()
@@ -59,21 +57,25 @@ func main() {
 		fmt.Printf("# %d - %s: start stage\n", stageNumber, spUpper)
 		stageStart := time.Now()
 		// sequentially compute stages
-		if sp == input.SpSave {
+		switch sp {
+		case input.SpSave:
 			handleSave(ctx, i, outTr, outCp, config)
-		} else if sp == input.SpPlot {
+		case input.SpPlot:
 			handlePlot(ctx, i, outTr, config)
-		} else if sp == input.SpTRsToCPs {
+		case input.SpTRsToCPs:
 			outCp = handleTRsToCPs(ctx, i, outTr, config)
-		} else if sp == input.SpMerge {
-			// multi-input, single-output
+		case input.SpMerge:
 			outTr = []data.TestResults{data.Merge(ctx, outTr)}
-		} else if sp == input.SpRmDupTns {
+		case input.SpRmDupTns:
 			outCp = handleRmDupTns(ctx, i, outCp)
-		} else {
-			// single-input, single-output
-			// hacky solution for passing the analysis function anFunc to this function
+		case input.SpAnalyse:
+			// only supports a single analyse function
+			anFunc := analysisFuncFromIn(config)
 			outTr = siso(ctx, sp, outTr, config, anFunc)
+		case input.SpFilter:
+			outTr = siso(ctx, sp, outTr, config, nil)
+		default:
+			panic(fmt.Sprintf("ERROR - Unknown Sub-Program '%v'\n", sp))
 		}
 		fmt.Printf("# %d - %s: finished stage in %v\n", stageNumber, spUpper, time.Since(stageStart))
 	}
@@ -191,6 +193,24 @@ func analysisFuncFromIn(in input.Config) data.AnalysisFunc {
 			panic(err)
 		}
 		fn, err := analyse.Twitter(util.AbsolutePath(p), minMean)
+		if err != nil {
+			panic(err)
+		}
+		f = fn
+	case input.AnalyseTtest:
+		p, err := input.StringParam(in.Analyse, 0)
+		if err != nil {
+			panic(err)
+		}
+		sig, err := input.Float64Param(in.Analyse, 1)
+		if err != nil {
+			panic(err)
+		}
+		paired, err := input.BoolParam(in.Analyse, 2)
+		if err != nil {
+			panic(err)
+		}
+		fn, err := analyse.Ttest(util.AbsolutePath(p), sig, paired)
 		if err != nil {
 			panic(err)
 		}

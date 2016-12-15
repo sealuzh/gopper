@@ -45,7 +45,7 @@ func Bcp(script string, probability float64) (data.AnalysisFunc, error) {
 		cpCount := 0
 		for i, cp := range cps {
 			if cp >= probability {
-				commit := tr.Commits()[i]
+				commit := commits[i]
 				ncp, err := data.NewChangePoint(commit, tr)
 				if err != nil {
 					return nil, err

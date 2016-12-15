@@ -54,6 +54,24 @@ func (rm *rManager) evaluate(tr data.TestResult, stmt string, params ...rParam) 
 		return nil, fmt.Errorf("RManager - could not assign test data: %v", err)
 	}
 
+	err = assignVariables(s, params...)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := s.Eval(stmt)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+type rParam struct {
+	name  string
+	value interface{}
+}
+
+func assignVariables(s roger.Session, params ...rParam) error {
 	for _, param := range params {
 		var err error
 		switch v := param.value.(type) {
@@ -68,21 +86,11 @@ func (rm *rManager) evaluate(tr data.TestResult, stmt string, params ...rParam) 
 		case []float64:
 			err = s.Assign(param.name, v)
 		default:
-			return nil, fmt.Errorf("RManager - unsupported paramater type %v", reflect.TypeOf(v))
+			return fmt.Errorf("RManager - unsupported paramater type %v", reflect.TypeOf(v))
 		}
 		if err != nil {
-			return nil, fmt.Errorf("RManager - could not assign parameter '%s = %v': %v", param.name, param.value, err)
+			return fmt.Errorf("RManager - could not assign parameter '%s = %v': %v", param.name, param.value, err)
 		}
 	}
-
-	res, err := s.Eval(stmt)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
-}
-
-type rParam struct {
-	name  string
-	value interface{}
+	return nil
 }

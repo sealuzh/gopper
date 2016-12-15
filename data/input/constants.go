@@ -13,8 +13,9 @@ const (
 	FilterMinMedian   = "minMedian"
 	AnalyseBcp        = "bcp"
 	AnalyseTwitter    = "twitter"
+	AnalyseTtest      = "ttest"
 )
 
 var SubProgs = [...]string{SpPlot, SpFilter, SpMerge, SpAnalyse, SpTRsToCPs, SpSave, SpRmDupTns}
 var TransFuncs = [...]string{FilterMinMean, FilterMinMedian, FilterMinVersions}
-var AnalyseFuncs = [...]string{AnalyseBcp, AnalyseTwitter}
+var AnalyseFuncs = [...]string{AnalyseBcp, AnalyseTwitter, AnalyseTtest}
