@@ -1,0 +1,11 @@
+package: bitbucket.org/sealuzh/gopper
+import:
+- package: github.com/gonum/plot
+  subpackages:
+  - plotter
+  - vg
+  - vg/draw
+- package: github.com/montanaflynn/stats
+  version: ^0.2.0
+- package: github.com/senseyeio/roger
+  version: ^0.2.0
