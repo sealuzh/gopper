@@ -28,11 +28,7 @@ type TestResults interface {
 	HeadingString() string
 }
 
-func NewTestResults() TestResults {
-	return NewTestResultsWithHeading([]string{})
-}
-
-func NewTestResultsWithHeading(heading []string) TestResults {
+func NewTestResults(heading []string) TestResults {
 	return &testResultsMap{
 		m:       make(map[string]TestResult),
 		names:   make([]string, 0, minCapacity),
@@ -58,7 +54,7 @@ func TestResultsFromFile(path string) (data TestResults, err error) {
 	if err != nil {
 		return nil, err
 	}
-	res := NewTestResultsWithHeading(heading)
+	res := NewTestResults(heading)
 	for {
 		rec, err := r.Read()
 		if err != nil {

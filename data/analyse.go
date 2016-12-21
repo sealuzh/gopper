@@ -24,7 +24,7 @@ func Analyse(ctx context.Context, in TestResults, f AnalysisFunc) TestResults {
 		go runAnalysis(ctx, f, out, res)
 	}
 	wg.Add(ltns)
-	ret := NewTestResults()
+	ret := NewTestResults(in.Heading())
 	for _, n := range tns {
 		n := n
 		r, ok := in.Get(n)

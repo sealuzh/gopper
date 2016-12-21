@@ -8,7 +8,7 @@ import (
 type TransFunc func(context.Context, <-chan TestResult) <-chan TestResult
 
 func Transform(ctx context.Context, in TestResults, transformers ...TransFunc) TestResults {
-	ret := NewTestResultsWithHeading(in.Heading())
+	ret := NewTestResults(in.Heading())
 	for _, r := range in.TestNames() {
 		tests, ok := in.Get(r)
 		if !ok {
