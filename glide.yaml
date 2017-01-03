@@ -1,4 +1,4 @@
-package: bitbucket.org/sealuzh/gopper
+package: github.com/sealuzh/gopper
 import:
 - package: github.com/gonum/plot
   subpackages:

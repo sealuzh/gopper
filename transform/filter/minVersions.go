@@ -3,7 +3,7 @@ package filter
 import (
 	"context"
 
-	"bitbucket.org/sealuzh/gopper/data"
+	"github.com/sealuzh/gopper/data"
 )
 
 func MinVersions(v int) data.TransFunc {

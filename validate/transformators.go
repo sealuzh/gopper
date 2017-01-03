@@ -3,7 +3,7 @@ package validate
 import (
 	"fmt"
 
-	"bitbucket.org/sealuzh/gopper/data/input"
+	"github.com/sealuzh/gopper/data/input"
 )
 
 func Transformators(sps input.SubPrograms, in input.Config) bool {

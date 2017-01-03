@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"bitbucket.org/sealuzh/gopper/data"
+	"github.com/sealuzh/gopper/data"
 )
 
 func RemoveDuplicateTestNames(ctx context.Context, cps []data.ChangePoints) ([]data.ChangePoints, error) {

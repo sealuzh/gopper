@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"bitbucket.org/sealuzh/gopper/data"
 	pl "github.com/gonum/plot"
 	"github.com/gonum/plot/plotter"
 	"github.com/gonum/plot/vg"
 	"github.com/gonum/plot/vg/draw"
+	"github.com/sealuzh/gopper/data"
 )
 
 const (

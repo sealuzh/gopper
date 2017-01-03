@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"bitbucket.org/sealuzh/gopper/data/input"
+	"github.com/sealuzh/gopper/data/input"
 )
 
 func Arguments(sps input.SubPrograms, in input.Config) {

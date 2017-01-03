@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"bitbucket.org/sealuzh/gopper/data"
+	"github.com/sealuzh/gopper/data"
 )
 
 func ToChangePoints(ctx context.Context, trs data.TestResults) (data.ChangePoints, error) {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"bitbucket.org/sealuzh/gopper/data"
+	"github.com/sealuzh/gopper/data"
 	"github.com/senseyeio/roger"
 )
 

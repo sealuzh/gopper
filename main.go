@@ -10,15 +10,15 @@ import (
 	"strings"
 	"time"
 
-	"bitbucket.org/sealuzh/gopper/analyse"
-	"bitbucket.org/sealuzh/gopper/data"
-	"bitbucket.org/sealuzh/gopper/data/input"
-	"bitbucket.org/sealuzh/gopper/save"
-	"bitbucket.org/sealuzh/gopper/transform/changepoints"
-	"bitbucket.org/sealuzh/gopper/transform/filter"
-	"bitbucket.org/sealuzh/gopper/transform/testresults"
-	"bitbucket.org/sealuzh/gopper/util"
-	"bitbucket.org/sealuzh/gopper/validate"
+	"github.com/sealuzh/gopper/analyse"
+	"github.com/sealuzh/gopper/data"
+	"github.com/sealuzh/gopper/data/input"
+	"github.com/sealuzh/gopper/save"
+	"github.com/sealuzh/gopper/transform/changepoints"
+	"github.com/sealuzh/gopper/transform/filter"
+	"github.com/sealuzh/gopper/transform/testresults"
+	"github.com/sealuzh/gopper/util"
+	"github.com/sealuzh/gopper/validate"
 )
 
 const comma = ';'

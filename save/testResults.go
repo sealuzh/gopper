@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"bitbucket.org/sealuzh/gopper/data"
-	"bitbucket.org/sealuzh/gopper/util"
+	"github.com/sealuzh/gopper/data"
+	"github.com/sealuzh/gopper/util"
 )
 
 func TestResults(stageNr int, d []data.TestResults, outPaths []string) {

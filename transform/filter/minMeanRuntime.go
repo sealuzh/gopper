@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"bitbucket.org/sealuzh/gopper/data"
 	"github.com/montanaflynn/stats"
+	"github.com/sealuzh/gopper/data"
 )
 
 func MinMeanRuntime(r float64) data.TransFunc {

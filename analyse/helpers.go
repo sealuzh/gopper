@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"bitbucket.org/sealuzh/gopper/data"
+	"github.com/sealuzh/gopper/data"
 )
 
 func vectoriseFirstElement(r data.TestResult) []float64 {

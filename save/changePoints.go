@@ -6,8 +6,8 @@ import (
 	"os"
 	"sort"
 
-	"bitbucket.org/sealuzh/gopper/data"
-	"bitbucket.org/sealuzh/gopper/util"
+	"github.com/sealuzh/gopper/data"
+	"github.com/sealuzh/gopper/util"
 )
 
 func ChangePoints(stageNr int, cps []data.ChangePoints, paths []string) {

@@ -1,6 +1,6 @@
 package validate
 
-import "bitbucket.org/sealuzh/gopper/data/input"
+import "github.com/sealuzh/gopper/data/input"
 
 func Plot(sps input.SubPrograms, in input.Config) bool {
 	l := len(sps.Occurrences[input.SpPlot])
