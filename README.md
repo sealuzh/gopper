@@ -9,8 +9,8 @@ Supported operations (aka sub-programs) are merging, filtering, anaylsing, plott
 * install [Glide](https://github.com/Masterminds/glide)
 * run `glide install` from the base directory
 * install [Docker](https://www.docker.com)
-* run `docker pull chrstphlbr/gopper-rserve`
-* run `docker run -tid --name gopper-rserve -p 6311:6311 chrstphlbr/gopper-rserve`
+* run `docker pull sealuzh/gopper-rserve`
+* run `docker run -tid --name gopper-rserve -p 6311:6311 sealuzh/gopper-rserve`
 
 ## Usage
 After the installation as successful and the gopper-rserve container is running, gopper is ready to be used for historical performance analysis.
