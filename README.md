@@ -1,5 +1,5 @@
 # gopper - Performance History Anaylsis
-gopper is a command line tool that takes performance metrics from tests (performance tests or unit tests) over multiple versions as input and applies different operations on it.
+gopper is a command line tool that takes performance metrics from tests (performance tests or unit tests) over multiple versions as input and applies different operations to it.
 Typical test results are multiple tests (with possibly multiple executions) for multiple versions (e.g. git commits) of a software.
 Supported operations (aka sub-programs) are merging, filtering, anaylsing, plotting and saving.
 
