@@ -17,7 +17,9 @@ After the installation as successful and the gopper-rserve container is running,
 
 ### Command Line Parameters
 gopper takes a single input file in json format that is specified by the parameter -c, and a non-empty set of sup-program parameters.
+
 The following sup-programs are supported:
+
 * `merge` - merges n input files to a single output file.
 * `filter` - filters the performance metrics. See section "Configuration File" for details.
 * `analyse` - analyses performance metrics with respect to performance changes.
