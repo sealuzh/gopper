@@ -36,6 +36,7 @@ This execution takes the sample configuration file from the next section.
 
 ### Configuration File
 The configuration file specifies the details that are necessary for an execution of gopper. It is in [JSON](json.org)-format and looks like the one below. The four main elements are:
+
 * "IN" - a non-empty list of input files. The format is CSV, exactly the same output as [hopper](https://github.com/sealuzh/hopper).
 * "OUT" - three different out types are possible:
     * "TestResults" - the possible filtered (with sub-program `filter`) input files, with the same format. Supports multiple paths, in case multiple "IN" paths were provided and sup-program `merge` was not executed (same amount required).
