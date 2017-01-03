@@ -170,47 +170,35 @@ func analysisFuncFromIn(in input.Config) data.AnalysisFunc {
 	funcName := in.Analyse.Name
 	switch funcName {
 	case input.AnalyseBcp:
-		p, err := input.StringParam(in.Analyse, 0)
+		probability, err := input.Float64Param(in.Analyse, 0)
 		if err != nil {
 			panic(err)
 		}
-		probability, err := input.Float64Param(in.Analyse, 1)
-		if err != nil {
-			panic(err)
-		}
-		fn, err := analyse.Bcp(util.AbsolutePath(p), probability)
+		fn, err := analyse.Bcp(probability)
 		if err != nil {
 			panic(err)
 		}
 		f = fn
 	case input.AnalyseTwitter:
-		p, err := input.StringParam(in.Analyse, 0)
+		minMean, err := input.IntParam(in.Analyse, 0)
 		if err != nil {
 			panic(err)
 		}
-		minMean, err := input.IntParam(in.Analyse, 1)
-		if err != nil {
-			panic(err)
-		}
-		fn, err := analyse.Twitter(util.AbsolutePath(p), minMean)
+		fn, err := analyse.Twitter(minMean)
 		if err != nil {
 			panic(err)
 		}
 		f = fn
 	case input.AnalyseTtest:
-		p, err := input.StringParam(in.Analyse, 0)
+		sig, err := input.Float64Param(in.Analyse, 0)
 		if err != nil {
 			panic(err)
 		}
-		sig, err := input.Float64Param(in.Analyse, 1)
+		paired, err := input.BoolParam(in.Analyse, 1)
 		if err != nil {
 			panic(err)
 		}
-		paired, err := input.BoolParam(in.Analyse, 2)
-		if err != nil {
-			panic(err)
-		}
-		fn, err := analyse.Ttest(util.AbsolutePath(p), sig, paired)
+		fn, err := analyse.Ttest(sig, paired)
 		if err != nil {
 			panic(err)
 		}

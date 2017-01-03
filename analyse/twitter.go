@@ -3,29 +3,24 @@ package analyse
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"reflect"
 
 	"bitbucket.org/sealuzh/gopper/data"
 )
 
 const (
-	rvarMinMean = "minMean"
+	rvarMinMean   = "minMean"
+	twitterScript = "library(\"BreakoutDetection\")\ncps <- breakout(td, min.size=minMean[[1]], method=\"multi\")\ncps$loc"
 )
 
-func Twitter(script string, minMean int) (data.AnalysisFunc, error) {
+func Twitter(minMean int) (data.AnalysisFunc, error) {
 	rm := newLocalRManager()
-	s, err := ioutil.ReadFile(script)
-	if err != nil {
-		return nil, err
-	}
-	f := string(s)
 	return func(ctx context.Context, tr data.TestResult) (data.ChangePoints, error) {
 		if tr == nil {
 			return nil, fmt.Errorf("Twitter function: parameter tr is nil")
 		}
 
-		res, err := rm.evaluate(tr, f, rParam{name: rvarMinMean, value: []int32{int32(minMean)}})
+		res, err := rm.evaluate(tr, twitterScript, rParam{name: rvarMinMean, value: []int32{int32(minMean)}})
 		if err != nil {
 			return nil, err
 		}

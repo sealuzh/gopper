@@ -3,25 +3,21 @@ package analyse
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"reflect"
 
 	"bitbucket.org/sealuzh/gopper/data"
 )
 
-func Bcp(script string, probability float64) (data.AnalysisFunc, error) {
+const bcpScript = "library(\"bcp\")\ncp <- bcp(td)\ncp$posterior.prob"
+
+func Bcp(probability float64) (data.AnalysisFunc, error) {
 	rm := newLocalRManager()
-	b, err := ioutil.ReadFile(script)
-	if err != nil {
-		return nil, err
-	}
-	f := string(b)
 	return func(ctx context.Context, tr data.TestResult) (data.ChangePoints, error) {
 		if tr == nil {
 			return nil, fmt.Errorf("Bcp function: parameter tr is nil")
 		}
 
-		res, err := rm.evaluate(tr, f)
+		res, err := rm.evaluate(tr, bcpScript)
 		if err != nil {
 			return nil, err
 		}

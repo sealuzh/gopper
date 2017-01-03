@@ -3,7 +3,6 @@ package analyse
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"reflect"
 
 	"bitbucket.org/sealuzh/gopper/data"
@@ -17,17 +16,11 @@ const (
 	expectedResultCount = 3
 	falseString         = "FALSE"
 	trueString          = "TRUE"
-	rScript             = "require(\"stats\")\nres <- t.test(%s, %s, paired = %s)\nc(res$statistic, res$parameter, res$p.value)"
+	ttestScript         = "require(\"stats\")\nres <- t.test(%s, %s, paired = %s)\nc(res$statistic, res$parameter, res$p.value)"
 )
 
-func Ttest(script string, sig float64, paired bool) (data.AnalysisFunc, error) {
+func Ttest(sig float64, paired bool) (data.AnalysisFunc, error) {
 	rm := newLocalRManager()
-	b, err := ioutil.ReadFile(script)
-	if err != nil {
-		return nil, err
-	}
-	f := string(b)
-
 	return func(ctx context.Context, tr data.TestResult) (data.ChangePoints, error) {
 		if tr == nil {
 			return nil, fmt.Errorf("Parameter tr is nil")
@@ -53,7 +46,7 @@ func Ttest(script string, sig float64, paired bool) (data.AnalysisFunc, error) {
 			resI := table[i]
 			resJ := table[j]
 
-			res, err := changes(c, f, true, resI, resJ)
+			res, err := changes(c, true, resI, resJ)
 			if err != nil {
 				return nil, err
 			}
@@ -81,7 +74,7 @@ type ttestResult struct {
 	pValue           float64
 }
 
-func changes(c roger.RClient, script string, paired bool, var1, var2 []float64) (*ttestResult, error) {
+func changes(c roger.RClient, paired bool, var1, var2 []float64) (*ttestResult, error) {
 	s, err := c.GetSession()
 	defer s.Close()
 
@@ -89,29 +82,12 @@ func changes(c roger.RClient, script string, paired bool, var1, var2 []float64) 
 		return nil, err
 	}
 
-	/*iParam := rParam{
-		name:  var1Name,
-		value: var2,
-	}
-	jParam := rParam{
-		name:  var2Name,
-		value: var2,
-	}*/
 	pairedToString := falseString
 	if paired {
 		pairedToString = trueString
 	}
-	/*pairedParam := rParam{
-		name:  varPairedName,
-		value: pairedToString,
-	}
-	err = assignVariables(s, iParam, jParam, pairedParam)
-	if err != nil {
-		return nil, err
-	}*/
 
-	//res, err := s.Eval(script)
-	res, err := s.Eval(fmt.Sprintf(rScript, f64SliceToString(var1), f64SliceToString(var2), pairedToString))
+	res, err := s.Eval(fmt.Sprintf(ttestScript, f64SliceToString(var1), f64SliceToString(var2), pairedToString))
 	if err != nil {
 		return nil, err
 	}
