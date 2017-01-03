@@ -4,11 +4,11 @@ Typical test results are multiple tests (with possibly multiple executions) for 
 Supported operations (aka sub-programs) are merging, filtering, anaylsing, plotting and saving.
 
 ## Installation
-* [Go programming language](https://golang.org) (tested with version go1.7.4 darwin/amd64)
+* install [Go programming language](https://golang.org) (tested with version go1.7.4 darwin/amd64)
 * Set $GOROOT and $GOPATH accordingly
-* [Glide](https://github.com/Masterminds/glide)
+* install [Glide](https://github.com/Masterminds/glide)
 * run `glide install` from the base directory
-* [Docker](https://www.docker.com)
+* install [Docker](https://www.docker.com)
 * run `docker pull chrstphlbr/gopper-rserve`
 * run `docker run -tid --name gopper-rserve -p 6311:6311 chrstphlbr/gopper-rserve`
 
