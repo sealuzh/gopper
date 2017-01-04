@@ -81,3 +81,6 @@ The configuration file specifies the details that are necessary for an execution
 	]
 }
 ```
+
+# Maintainer
+[Christoph Laaber](https://github.com/chrstphlbr)
