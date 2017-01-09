@@ -171,7 +171,10 @@ func boxPlots(testResult data.TestResult) ([]pl.Plotter, []pl.Plotter, VersionTi
 			panic(err)
 		}
 
-		_, isCp := cps.Get(c)
+		_, isImCp := cps.Get(c, data.ImprovementType)
+		_, isReCp := cps.Get(c, data.RegressionType)
+		isCp := isImCp || isReCp
+
 		if isCp {
 			c := color.RGBA{R: 0, G: 255, B: 255}
 			b.MedianStyle.Color = c
