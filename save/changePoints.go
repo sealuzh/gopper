@@ -86,14 +86,14 @@ func saveCsv(path string, commits []string, cps map[string]*changePointTypes) {
 		w := csv.NewWriter(f)
 		w.Comma = comma
 		defer w.Flush()
-		w.Write([]string{"Commit", "Run"})
+		w.Write([]string{"Commit", "Improvement", "Regression"})
 		w.Flush()
 		for _, c := range commits {
 			cpt, ok := cps[c]
 			if !ok {
-				w.Write([]string{c, "0 / 0 "})
+				w.Write([]string{c, "0", "0"})
 			} else {
-				w.Write([]string{c, fmt.Sprintf("%d / %d", cpt.Im, cpt.Reg)})
+				w.Write([]string{c, fmt.Sprintf("%d", cpt.Im), fmt.Sprintf("%d", cpt.Reg)})
 			}
 			w.Flush()
 		}
