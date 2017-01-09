@@ -401,7 +401,7 @@ func (t cpt) String() string {
 	case ImprovementType:
 		return jsonImprovement
 	case RegressionType:
-		return jsonImprovement
+		return jsonRegression
 	default:
 		return fmt.Sprintf("Unknown ChangePointType: %d", t)
 	}

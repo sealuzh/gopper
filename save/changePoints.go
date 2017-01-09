@@ -27,6 +27,7 @@ func ChangePoints(stageNr int, cps []data.ChangePoints, paths []string) {
 			copy := cp.Copy()
 			sort.Sort(sort.Reverse(copy))
 			e := json.NewEncoder(f)
+			e.SetIndent("", "    ") // indentation is 4 spaces
 			e.Encode(copy)
 			f.Close()
 		}
