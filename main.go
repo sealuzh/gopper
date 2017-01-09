@@ -84,7 +84,7 @@ func main() {
 
 func handleSave(ctx context.Context, stageNr int, trs []data.TestResults, cps []data.ChangePoints, config input.Config) {
 	if cps != nil {
-		save.ChangePoints(stageNr, cps, config.Out.ChangePoints)
+		save.ChangePoints(stageNr, trs, cps, config.Out.ChangePoints)
 	}
 	if trs != nil {
 		save.TestResults(stageNr, trs, config.Out.TestResults)
