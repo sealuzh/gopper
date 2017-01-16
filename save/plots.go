@@ -171,9 +171,8 @@ func boxPlots(testResult data.TestResult) ([]pl.Plotter, []pl.Plotter, VersionTi
 			panic(err)
 		}
 
-		_, isImCp := cps.Get(c, data.ImprovementType)
-		_, isReCp := cps.Get(c, data.RegressionType)
-		isCp := isImCp || isReCp
+		hasCps := cps.At(c)
+		isCp := hasCps.Len() > 0
 
 		if isCp {
 			c := color.RGBA{R: 0, G: 255, B: 255}

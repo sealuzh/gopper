@@ -23,22 +23,11 @@ func ChangePoints(stageNr int, trs []data.TestResults, cps []data.ChangePoints, 
 
 	for i, cp := range cps {
 		changePoints := cp.All()
-		cpsAgg := make(map[string]*changePointTypes, len(cps))
+		cpsAgg := make(map[string]data.ChangePoints, len(cps))
 		for _, c := range changePoints {
 			commit := c.Commit()
-			testNames := c.TestNames()
-			testNamesLen := len(testNames)
-			cpAgg, ok := cpsAgg[commit]
-			if !ok {
-				cpAgg = &changePointTypes{}
-				cpsAgg[commit] = cpAgg
-			}
-			cpt := c.Type()
-			if cpt.IsImprovement() {
-				cpAgg.Im = testNamesLen
-			} else if cpt.IsRegression() {
-				cpAgg.Reg = testNamesLen
-			}
+			cpsc := cp.At(commit)
+			cpsAgg[commit] = cpsc
 		}
 
 		// save json file
@@ -75,7 +64,7 @@ func saveJson(path string, cp data.ChangePoints) {
 	}
 }
 
-func saveCsv(path string, commits []string, cps map[string]*changePointTypes) {
+func saveCsv(path string, commits []string, cps map[string]data.ChangePoints) {
 	op := util.AbsolutePath(outPath(path, ".csv"))
 	f, err := os.Create(op)
 	if err != nil {
@@ -86,18 +75,57 @@ func saveCsv(path string, commits []string, cps map[string]*changePointTypes) {
 		w := csv.NewWriter(f)
 		w.Comma = comma
 		defer w.Flush()
-		w.Write([]string{"Commit", "Improvement", "Regression"})
+
+		cpTypes := data.AllChangePointTypes()
+		columns := len(cpTypes) + 1
+		// write csv heading line
+		heading := make([]string, columns)
+		heading[0] = "Commit"
+		for i := 1; i < columns; i++ {
+			heading[i] = cpTypes[i-1].String()
+		}
+		w.Write(heading)
 		w.Flush()
+
+		// write csv content
 		for _, c := range commits {
 			cpt, ok := cps[c]
 			if !ok {
-				w.Write([]string{c, "0", "0"})
+				w.Write(emptyLine(c, cpTypes))
 			} else {
-				w.Write([]string{c, fmt.Sprintf("%d", cpt.Im), fmt.Sprintf("%d", cpt.Reg)})
+				w.Write(nonEmptyLine(c, cpTypes, cpt))
 			}
 			w.Flush()
 		}
 	}
+}
+
+func emptyLine(commit string, cpTypes []data.ChangePointType) []string {
+	l := len(cpTypes) + 1
+	line := make([]string, l)
+	line[0] = commit
+	for i := 1; i < l; i++ {
+		line[i] = "0"
+	}
+	return line
+}
+
+func nonEmptyLine(commit string, cpTypes []data.ChangePointType, cps data.ChangePoints) []string {
+	l := len(cpTypes) + 1
+	line := make([]string, l)
+	line[0] = commit
+
+	for i, t := range cpTypes {
+		k := i + 1
+		cp, ok := cps.Get(commit, t)
+		if ok {
+			line[k] = fmt.Sprintf("%d", len(cp.TestNames()))
+		} else {
+			line[k] = "0"
+		}
+	}
+
+	return line
 }
 
 func outPath(path string, suffix string) string {
