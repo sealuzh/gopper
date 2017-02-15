@@ -6,14 +6,14 @@ import (
 )
 
 const (
-	defaultExecutionResultLength = 30
+	defaultCommitCount = 30
 )
 
 type TestResult interface {
 	Project() string
 	Test() string
 	Commits() []string
-	ExecutionResult(commit string) (ExecutionResults, bool)
+	ExecutionResults(commit string) (ExecutionResults, bool)
 	AddExecutionResult(er *ExecutionResult) error
 	ChangePoints() ChangePoints
 	AddChangePoint(cp ChangePoint) error
@@ -25,7 +25,7 @@ func NewTestResult(project, test string) TestResult {
 		project:          project,
 		test:             test,
 		executionResults: make(map[string]ExecutionResults),
-		commits:          make([]string, 0, defaultExecutionResultLength),
+		commits:          make([]string, 0, defaultCommitCount),
 		changePoints:     NewChangePoints(),
 	}
 }
@@ -61,7 +61,7 @@ func (t *testResultImpl) Commits() []string {
 	return c
 }
 
-func (t *testResultImpl) ExecutionResult(commit string) (ExecutionResults, bool) {
+func (t *testResultImpl) ExecutionResults(commit string) (ExecutionResults, bool) {
 	t.l.RLock()
 	defer t.l.RUnlock()
 	er, ok := t.executionResults[commit]
@@ -88,10 +88,12 @@ func (t *testResultImpl) AddExecutionResult(er *ExecutionResult) error {
 		if !ok {
 			panic(fmt.Sprintf("testResultImpl::AddExecutionResult - Incorrect state of commits and executionReuslts: %v", er.SHA))
 		}
-		t.executionResults[er.SHA] = append(ers, er)
+		ers.Add(er)
 	} else {
 		t.commits = append(t.commits, er.SHA)
-		t.executionResults[er.SHA] = append(make(ExecutionResults, 0, defaultExecutionResultLength), er)
+		ers := newExecutionResults()
+		ers.Add(er)
+		t.executionResults[er.SHA] = ers
 	}
 	return nil
 }

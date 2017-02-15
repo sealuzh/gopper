@@ -3,6 +3,7 @@ package data
 import (
 	"fmt"
 	"strconv"
+	"sync"
 )
 
 func newExecutionResult(record []string) *ExecutionResult {
@@ -22,14 +23,6 @@ func newExecutionResult(record []string) *ExecutionResult {
 		record[4],
 		rawVal,
 	}
-}
-
-func ExecutionResultsToValues(ers ExecutionResults) []float64 {
-	ret := make([]float64, len(ers))
-	for i, er := range ers {
-		ret[i] = er.RawVal
-	}
-	return ret
 }
 
 type ExecutionResult struct {
@@ -52,4 +45,47 @@ func (r ExecutionResult) AsStringArray() []string {
 	}
 }
 
-type ExecutionResults []*ExecutionResult
+// ExecutionResults
+const (
+	defaultExecutionResultCount = 30
+)
+
+type ExecutionResults interface {
+	Values() []float64
+	All() []*ExecutionResult
+	Add(er *ExecutionResult)
+}
+
+func newExecutionResults() ExecutionResults {
+	return &executionResultsImpl{
+		ers: make([]*ExecutionResult, 0, defaultExecutionResultCount),
+	}
+}
+
+type executionResultsImpl struct {
+	l   sync.RWMutex
+	ers []*ExecutionResult
+}
+
+func (ers *executionResultsImpl) Values() []float64 {
+	ers.l.RLock()
+	defer ers.l.RUnlock()
+	l := len(ers.ers)
+	ret := make([]float64, l)
+	for i, er := range ers.ers {
+		ret[i] = er.RawVal
+	}
+	return ret
+}
+
+func (ers *executionResultsImpl) All() []*ExecutionResult {
+	ers.l.RLock()
+	defer ers.l.RUnlock()
+	return ers.ers
+}
+
+func (ers *executionResultsImpl) Add(er *ExecutionResult) {
+	ers.l.Lock()
+	defer ers.l.Unlock()
+	ers.ers = append(ers.ers, er)
+}

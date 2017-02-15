@@ -130,11 +130,11 @@ func (rm *testResultsMap) AddTest(t TestResult) error {
 	res, ok := rm.m[testName]
 	if ok {
 		for _, c := range t.Commits() {
-			ers, ok := t.ExecutionResult(c)
+			ers, ok := t.ExecutionResults(c)
 			if !ok {
 				panic(fmt.Sprintf("testResultsMap::AddTest - TestResult has invalid state"))
 			}
-			for _, er := range ers {
+			for _, er := range ers.All() {
 				res.AddExecutionResult(er)
 			}
 		}

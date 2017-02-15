@@ -61,12 +61,13 @@ func ChangePointTypeFromResult(commit string, testResult TestResult) (ChangePoin
 	}
 
 	// compare means
-	trs1, ok := testResult.ExecutionResult(commit)
+	trs1, ok := testResult.ExecutionResults(commit)
 	if !ok {
 		return nil, fmt.Errorf("NewChangePointType - No execution results for commit: %s", commit)
 	}
-	c1Data := make([]float64, len(trs1))
-	for i, er := range trs1 {
+	trs1Data := trs1.All()
+	c1Data := make([]float64, len(trs1Data))
+	for i, er := range trs1Data {
 		c1Data[i] = er.RawVal
 	}
 	c1Mean, err := stats.Mean(stats.Float64Data(c1Data))
@@ -74,12 +75,13 @@ func ChangePointTypeFromResult(commit string, testResult TestResult) (ChangePoin
 		return nil, fmt.Errorf("NewChangePointType - error calculating mean: %v", err)
 	}
 
-	trs2, ok := testResult.ExecutionResult(commit2)
+	trs2, ok := testResult.ExecutionResults(commit2)
 	if !ok {
 		return nil, fmt.Errorf("NewChangePointType - No execution results for commit: %s", commit2)
 	}
-	c2Data := make([]float64, len(trs2))
-	for i, er := range trs2 {
+	trs2Data := trs2.All()
+	c2Data := make([]float64, len(trs2Data))
+	for i, er := range trs2Data {
 		c2Data[i] = er.RawVal
 	}
 	c2Mean, err := stats.Mean(stats.Float64Data(c2Data))

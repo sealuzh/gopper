@@ -22,7 +22,7 @@ func RemoveDuplicateTestNames(ctx context.Context, cps []data.ChangePoints) ([]d
 					panic(fmt.Sprintf("Inconsistent change point. commit=%s; test=%s", commit, tn))
 				}
 
-				_, ok = t.ExecutionResult(commit)
+				_, ok = t.ExecutionResults(commit)
 				if !ok {
 					panic(fmt.Sprintf("Inconsistent test result. commit=%s; test=%s", commit, tn))
 				}

@@ -41,11 +41,11 @@ func TestResults(stageNr int, d []data.TestResults, outPaths []string) {
 					continue
 				}
 				for _, c := range rs.Commits() {
-					ers, ok := rs.ExecutionResult(c)
+					ers, ok := rs.ExecutionResults(c)
 					if !ok {
 						panic(fmt.Sprintf("Inconsistent test result: %s @ %s", r, c))
 					}
-					for _, r := range ers {
+					for _, r := range ers.All() {
 						w.Write(r.AsStringArray())
 					}
 				}

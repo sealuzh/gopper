@@ -162,11 +162,11 @@ func boxPlots(testResult data.TestResult) ([]pl.Plotter, []pl.Plotter, VersionTi
 	ticks := make([]pl.Tick, lc)
 
 	for i, c := range commits {
-		ers, ok := testResult.ExecutionResult(c)
+		ers, ok := testResult.ExecutionResults(c)
 		if !ok {
 			panic(fmt.Sprintf("Inconsistent test result: %s @ %s", testResult.Test(), c))
 		}
-		b, err := plotter.NewBoxPlot(vg.Points(20), float64(i), plotter.Values(data.ExecutionResultsToValues(ers)))
+		b, err := plotter.NewBoxPlot(vg.Points(20), float64(i), plotter.Values(ers.Values()))
 		if err != nil {
 			panic(err)
 		}

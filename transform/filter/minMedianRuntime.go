@@ -27,11 +27,11 @@ func MinMedianRuntime(r float64) data.TransFunc {
 			commits := tests.Commits()
 			medians := make([]float64, len(commits))
 			for i, c := range commits {
-				ers, ok := tests.ExecutionResult(c)
+				ers, ok := tests.ExecutionResults(c)
 				if !ok {
 					panic(fmt.Sprintf("Inconsistent test result: %s", c))
 				}
-				median, err := stats.Median(stats.Float64Data(data.ExecutionResultsToValues(ers)))
+				median, err := stats.Median(stats.Float64Data(ers.Values()))
 				if err != nil {
 					panic(err)
 				}

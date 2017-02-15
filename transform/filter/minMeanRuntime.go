@@ -26,11 +26,11 @@ func MinMeanRuntime(r float64) data.TransFunc {
 			var avgRt float64
 			counter := 0
 			for _, c := range tests.Commits() {
-				ers, ok := tests.ExecutionResult(c)
+				ers, ok := tests.ExecutionResults(c)
 				if !ok {
 					panic(fmt.Sprintf("Inconsistent test result: %s", c))
 				}
-				m, err := stats.Mean(stats.Float64Data(data.ExecutionResultsToValues(ers)))
+				m, err := stats.Mean(stats.Float64Data(ers.Values()))
 				if err != nil {
 					panic(err)
 				}

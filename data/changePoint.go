@@ -21,7 +21,7 @@ func NewChangePoint(commit string, test TestResult) (ChangePoint, error) {
 		return nil, fmt.Errorf("Parameter test is nil")
 	}
 
-	_, ok := test.ExecutionResult(commit)
+	_, ok := test.ExecutionResults(commit)
 	testName := test.Test()
 	if !ok {
 		return nil, fmt.Errorf("Commit '%s' is not contained in TestResult for test '%s'", commit, test.Test())
