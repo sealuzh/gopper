@@ -13,7 +13,7 @@ type TestResult interface {
 	Project() string
 	Test() string
 	Commits() []string
-	ExecutionResult(commit string) ([]*ExecutionResult, bool)
+	ExecutionResult(commit string) (ExecutionResults, bool)
 	AddExecutionResult(er *ExecutionResult) error
 	ChangePoints() ChangePoints
 	AddChangePoint(cp ChangePoint) error
@@ -24,7 +24,7 @@ func NewTestResult(project, test string) TestResult {
 	return &testResultImpl{
 		project:          project,
 		test:             test,
-		executionResults: make(map[string][]*ExecutionResult),
+		executionResults: make(map[string]ExecutionResults),
 		commits:          make([]string, 0, defaultExecutionResultLength),
 		changePoints:     NewChangePoints(),
 	}
@@ -35,7 +35,7 @@ type testResultImpl struct {
 	project          string
 	test             string
 	commits          []string
-	executionResults map[string][]*ExecutionResult
+	executionResults map[string]ExecutionResults
 	changePoints     ChangePoints
 }
 
@@ -61,7 +61,7 @@ func (t *testResultImpl) Commits() []string {
 	return c
 }
 
-func (t *testResultImpl) ExecutionResult(commit string) ([]*ExecutionResult, bool) {
+func (t *testResultImpl) ExecutionResult(commit string) (ExecutionResults, bool) {
 	t.l.RLock()
 	defer t.l.RUnlock()
 	er, ok := t.executionResults[commit]
@@ -91,7 +91,7 @@ func (t *testResultImpl) AddExecutionResult(er *ExecutionResult) error {
 		t.executionResults[er.SHA] = append(ers, er)
 	} else {
 		t.commits = append(t.commits, er.SHA)
-		t.executionResults[er.SHA] = append(make([]*ExecutionResult, 0, defaultExecutionResultLength), er)
+		t.executionResults[er.SHA] = append(make(ExecutionResults, 0, defaultExecutionResultLength), er)
 	}
 	return nil
 }
@@ -119,7 +119,7 @@ func (t *testResultImpl) Copy() TestResult {
 		panic(fmt.Sprintf("testResultImpl: only copied %d of %d elements", copiedCommits, lc))
 	}
 
-	exRes := make(map[string][]*ExecutionResult)
+	exRes := make(map[string]ExecutionResults)
 	for k, v := range t.executionResults {
 		exRes[k] = v
 	}

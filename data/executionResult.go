@@ -24,7 +24,7 @@ func newExecutionResult(record []string) *ExecutionResult {
 	}
 }
 
-func ExecutionResultsToValues(ers []*ExecutionResult) []float64 {
+func ExecutionResultsToValues(ers ExecutionResults) []float64 {
 	ret := make([]float64, len(ers))
 	for i, er := range ers {
 		ret[i] = er.RawVal
@@ -51,3 +51,5 @@ func (r ExecutionResult) AsStringArray() []string {
 		strconv.FormatFloat(float64(r.RawVal), 'f', -1, 64),
 	}
 }
+
+type ExecutionResults []*ExecutionResult
